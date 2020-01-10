@@ -7,8 +7,7 @@ from dotenv import load_dotenv
 
 
 load_dotenv()
-#token = os.getenv('DISCORD_TOKEN')
-token = 'NjU4MzM2NjI0NjQ3NzMzMjU4.Xf-1dw.h7dYLr6XmjHgtvgG7aEZO5rWrUg'
+token = os.getenv('DISCORD_TOKEN')
 
 bot = commands.Bot(command_prefix='!')
 
