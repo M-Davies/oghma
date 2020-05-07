@@ -2,7 +2,7 @@ import os
 import requests
 import json
 import discord
-import time
+import logging
 from discord.ext import commands
 
 from dotenv import load_dotenv
@@ -13,6 +13,13 @@ botName = "Oghma"
 TOKEN = os.getenv('BOT_TOKEN')
 bot = commands.Bot(command_prefix='?')
 client = discord.Client()
+
+# Set up logging
+logger = logging.getLogger('discord')
+logger.setLevel(logging.INFO)
+handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
+handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+logger.addHandler(handler)
 
 ###
 # FUNC NAME: on_ready
@@ -27,6 +34,23 @@ async def on_ready():
     print('------')
 
 ###
+# FUNC NAME: on_command_error
+# FUNC DESC: If an error is thrown this func is executed
+# FUNC TYPE: Event
+###
+@bot.event
+async def on_command_error(ctx, error):
+
+    # If input is too long
+    if isinstance(error, commands.TooManyArguments):
+
+        await ctx.send(embed=discord.Embed(
+            color=discord.Colour.red(),
+            title="Too many or Too Few arguments",
+            description="`?search` requires at least one argument and cannot support more than 100"
+        ))
+
+###
 # FUNC NAME: ?ping
 # FUNC DESC: Pings the bot to check it is live
 # FUNC TYPE: Command
@@ -36,140 +60,155 @@ async def ping(ctx):
     await ctx.send('Pong!')
 
 ###
-# FUNC NAME: throwCodeError
-# FUNC DESC: Throws an error if the api status code is not a successful one 
+# FUNC NAME: searchResponse
+# FUNC DESC: Searches the API response for the user input. Returns None if nothing was found
 # FUNC TYPE: Function
 ###
-def throwCodeError(location, code):
-
-    # Construct error embed
-    embed = discord.Embed(
-        colour=discord.Colour.red(),
-        title="ERROR", 
-        description="API Request on {} FAILED".format(location)
-    )
-    embed.add_field(name="Status Code", value=code)
-    embed.add_field(name="For more information:", value="See https://www.django-rest-framework.org/api-guide/status-codes/")
+def searchResponse(responseResults, filteredInput):
     
-    embed.timestamp(time.ctime())
-    embed.set_thumbnail(url="https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/240/apple/237/cross-mark_274c.png")
-    embed.set_author(name=botName, icon_url="https://i.imgur.com/HxuMICy.jpg")
+    match = None
+    for i in responseResults:
 
-    # Respond and exit
-    return embed
+        # Strip whitespaces and lower case before checking if it's match
+        if hasattr(i, "title"):
 
-###
-# FUNC NAME: requestAndSearchAPI
-# FUNC DESC: Queries and parses the API. 
-# FUNC TYPE: Function
-###
-def requestAndSearchAPI(query, filteredInput):
-    output = []
-
-    nextPage = True
-    pageNum = 1
-
-    while nextPage:
-        newQuery = query
-        request = None
-        response = None
-
-        # Alter query if changing page
-        if (pageNum != 1): newQuery = query + "&page={}".format(str(pageNum))
-            
-        print("Current query: {}".format(newQuery))
-
-        # API Request
-        request = requests.get(newQuery)
-        statusCode = request.status_code
-
-        # Throw error if not successfull
-        if statusCode != 200: 
-            output = throwCodeError(newQuery, statusCode)
+            # Has to be in it's own if to avoid KeyErrors
+            if i["title"].replace(" ", "").lower() == filteredInput:
+                match = i
+                break
+        
+        elif i["name"].replace(" ", "").lower() == filteredInput:
+            match = i
             break
 
-        # Iterate through the objects
-        response = request.json()
+        else: pass #TODO: ADD UNSUPPORTED OBJECT HERE
 
-        for i in response["results"]:
-            match = False
+    return match
 
-            try:
-                # Strip whitespaces and lower case before checking if it's match
-                match = i["name"].replace(" ", "").lower() == filteredInput or i["title"].replace(" ", "").lower() == filteredInput
+###
+# FUNC NAME: requestAPI
+# FUNC DESC: Queries the API. 
+# FUNC TYPE: Function
+###
+def requestAPI(query, filteredInput, wideSearch):
+            
+    print("Current query: {}".format(query))
 
-            # Filter out KeyErrors for objects that don't have the title field
-            except KeyError: pass
+    # API Request
+    request = requests.get(query)
+    statusCode = request.status_code
 
-            if match: output.append(i)
-    
-        # Check if there is another page
-        if response["next"] == None: 
-            nextPage = False
-        else:
-            pageNum = pageNum + 1
+    # Return code if not successfull
+    if statusCode != 200: return statusCode
 
-    return output
+    # Iterate through the results
+    output = searchResponse(request.json()["results"], filteredInput)
+
+    if output == None: return output
+
+    # Find resource object if coming from search endpoint
+    elif wideSearch == True:
+
+        # Request resource using the first word of the name to filter results
+        # NOTE: Documents are not supported for this as they are not in /search at the time of writing this
+        route = output["route"]
+        resourceRequest = requests.get(
+            "https://api.open5e.com/{}/?format=json&limit=10000&search={}"
+            .format(
+                route, 
+                output["name"].split()[0]
+            )
+        )
+        resourceRequestCode = resourceRequest.status_code
+
+        # Return code if not successfull
+        if resourceRequestCode != 200: return resourceRequestCode
+
+        # Search response again for the actual object
+        resourceOutput = searchResponse(resourceRequest.json()["results"], filteredInput)
+
+        return {"route": route, "matchedObj": resourceOutput}
+
+    # If already got the resource object, just return it
+    else: return output
 
 ###
 # FUNC NAME: constructResponse
 # FUNC DESC: Constructs an embed response from the API object.
 # FUNC TYPE: Function
 ###
-def constructResponse(responseArray, filteredInput):
-    embeds = []
+def constructResponse(filteredInput, route, matchedObj):
 
-    if (responseArray == []):
-        
-        # Not found
-        failEmbed = discord.Embed(
-            colour=discord.Colour.red(),
-            title="ERROR", 
-            description="No matches found for **{}** in the search endpoint".format(filteredInput.upper())
+    if hasattr(matchedObj, "title"):
+
+        # Document
+        documentEmbed = discord.Embed(
+            colour=discord.Colour.green(),
+            title=matchedObj["title"], 
+            description=matchedObj["desc"]
         )
+        documentEmbed.add_field(name="Authors", value=matchedObj["author"])
+        documentEmbed.add_field(name="Link", value=matchedObj["url"], inline=True)
+        documentEmbed.add_field(name="Version Number", value=matchedObj["version"], inline=True)
 
-        failEmbed.timestamp(time.ctime())
-        failEmbed.set_thumbnail(url="https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/240/apple/237/black-question-mark-ornament_2753.png")
-        failEmbed.set_author(name=botName, icon_url="https://i.imgur.com/HxuMICy.jpg")
+        documentEmbed.set_thumbnail(url="https://i.imgur.com/lnkhxCe.jpg")
+        documentEmbed.set_author(name=botName, icon_url="https://i.imgur.com/HxuMICy.jpg")
 
-        # Append to embeds
-        embeds.append(failEmbed)
+        return documentEmbed
 
-    else:
+    # Found something else
+    elif hasattr(matchedObj, "name"):
 
-        # Iterate through matches
-        for i in responseArray:
+        # Spell
+        if route == "spells/":
 
-            # Found document
-            if i["title"]:
+            spellEmbed = discord.Embed(
+                colour=discord.Colour.green(),
+                title=matchedObj["name"], 
+                description=matchedObj["desc"]
+            )
+            if matchedObj["higher_level"] != "": spellEmbed.add_field(name="Higher Level", value=matchedObj["higher_level"])
+            
+            spellEmbed.add_field(name="School", value=matchedObj["school"])
+            spellEmbed.add_field(name="Level", value=matchedObj["level"], inline=True)
+            spellEmbed.add_field(name="Duration", value=matchedObj["duration"], inline=True)
+            spellEmbed.add_field(name="Casting Time", value=matchedObj["casting_time"], inline=True)
+            spellEmbed.add_field(name="Range", value=matchedObj["range"], inline=True)
+            spellEmbed.add_field(name="Concentration?", value=matchedObj["concentration"], inline=True)
+            spellEmbed.add_field(name="Ritual?", value=matchedObj["ritual"], inline=True)
 
-                documentEmbed = discord.Embed(
-                    colour=discord.Colour.blue(),
-                    title=i["title"], 
-                    description=i["desc"]
-                )
-                documentEmbed.add_field(name="Authors", value=i["author"])
-                documentEmbed.add_field(name="Link", value=i["url"], inline=True)
-                documentEmbed.add_field(name="Version Number", value=i["version"], inline=True)
+            spellEmbed.add_field(name="Spell Components", value=matchedObj["components"])
+            if "M" in matchedObj["components"]: spellEmbed.add_field(name="Material", value=matchedObj["material"])
 
-                documentEmbed.timestamp(time.ctime())
-                documentEmbed.set_thumbnail(url="https://i.imgur.com/lnkhxCe.jpg")
-                documentEmbed.set_author(name=botName, icon_url="https://i.imgur.com/HxuMICy.jpg")
+            spellEmbed.set_footer(text="Page: {}".format(matchedObj["page"]))
 
-                embeds.append(documentEmbed)
+            spellEmbed.set_thumbnail(url="https://i.imgur.com/lnkhxCe.jpg")
+            spellEmbed.set_author(name=botName, icon_url="https://i.imgur.com/HxuMICy.jpg")
 
-            # Found something else
-            elif i["name"]:
+            return spellEmbed
 
-                embeds = discord.Embed(
-                    colour=discord.Colour.green(),
-                    title="ERROR", 
-                    description="No matches found for {} in the search endpoint".format(filteredInput.upper())
-                )
-                embeds.set_author(name=botName, icon_url="https://i.imgur.com/HxuMICy.jpg")
+        # Monster
 
-    # Return responses
-    return embeds
+        # Background
+
+        # Plane
+
+        # Section
+
+        # Feat
+
+        # Condition
+
+        # Race
+
+        # Class
+
+        # Magic Item
+
+        # Weapon
+    
+    else: raise Exception("UNEXPECTED FAIL!")
+
 
 ###
 # FUNC NAME: ?search [ENTITY]
@@ -180,34 +219,67 @@ def constructResponse(responseArray, filteredInput):
 @bot.command(pass_context=True, name='search', help='Queries the Open5e API to get the entities infomation.\nUsage: ?search [ENTITY]')
 async def search(ctx, *args):
 
-    print(args)
-    print(len(args))
-
     # Verify arg length
-    if len(args) != 1: raise Exception("Command requires only one parameter")
+    if len(args) > 100 or len(args) <= 0: raise commands.TooManyArguments
 
     # Filter input to remove whitespaces and set lowercase
-    filteredInput = args[0].replace(" ", "").lower()
+    filteredInput = "".join(args).lower()
+    print("Filtered input is {}".format(filteredInput))
 
     # Search API
-    ctx.send("SEARCHING API...")
-    matches = requestAndSearchAPI("https://api.open5e.com/search/?format=json", filteredInput)
+    await ctx.send(embed=discord.Embed(
+        color=discord.Colour.blue(),
+        title="SEARCHING ALL ENDPOINTS FOR {} (filtered input)...".format(filteredInput),
+        description="WARNING: This may take a while!"
+    ))
+    
+    # Use first word to narrow search results down for quicker response
+    match = requestAPI("https://api.open5e.com/search/?format=json&limit=10000&text={}".format(str(args[0])), filteredInput, True)
+    
+    # An API Request failed
+    if isinstance(match, int):
+        codeEmbed = discord.Embed(
+            colour=discord.Colour.red(),
+            title="ERROR", 
+            description="API Request FAILED. Status Code: **{}**".format(str(match))
+        )
+        
+        codeEmbed.add_field(name="For more idea on what went wrong:", value="See status codes at https://www.django-rest-framework.org/api-guide/status-codes/")
 
-    # Construct embeds
-    responseEmbed = constructResponse(matches, filteredInput)
+        codeEmbed.set_thumbnail(url="https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/240/apple/237/cross-mark_274c.png")
+        codeEmbed.set_author(name=botName, icon_url="https://i.imgur.com/HxuMICy.jpg")
 
-    # Send responses
-    for embed in responseEmbed: await ctx.send(embed=embed)
+        return await ctx.send(embed=codeEmbed)
+
+    # No entity was found
+    elif match == None:
+        noMatchEmbed = discord.Embed(
+            colour=discord.Colour.orange(),
+            title="ERROR", 
+            description="No matches found for **{}** in the search endpoint".format(filteredInput.upper())
+        )
+
+        noMatchEmbed.set_thumbnail(url="https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/240/apple/237/black-question-mark-ornament_2753.png")
+        noMatchEmbed.set_author(name=botName, icon_url="https://i.imgur.com/HxuMICy.jpg")
+
+        return await ctx.send(embed=noMatchEmbed)
+
+    # Otherwise, construct response embed message
+    else: 
+        responseEmbed = constructResponse(filteredInput, match["route"], match["matchedObj"])
+
+        # Send response
+        return await ctx.send(embed=responseEmbed)
 
 ###
-# FUNC NAME: ?searchDirectory [DIRECTORY] [ENTITY]
-# FUNC DESC: Queries the Open5e DIRECTORY API.
-# ENDPOINT:  Directory/endpoint name (i.e. spells, monsters, etc.).
+# FUNC NAME: ?searchdir [RESOURCE] [ENTITY]
+# FUNC DESC: Queries the Open5e RESOURCE API.
+# ENDPOINT:  Resource/endpoint name (i.e. spells, monsters, etc.).
 # ENTITY: The DND entity you wish to get infomation on.
 # FUNC TYPE: Command
 ###
-@bot.command(name='searchDirectory', help='Queries the Open5e API to get the entities infomation from the specified directory.\nUsage: ?searchDirectory [DIRECTORY] [ENTITY]')
-async def searchDirectory(ctx, *args):
+@bot.command(name='searchdir', help='Queries the Open5e API to get the entities infomation from the specified resource.\nUsage: ?searchdir [RESOURCE] [ENTITY]')
+async def searchdir(ctx, *args):
 
     rawDirectory = ""
     if len(args) == 1:
@@ -235,9 +307,6 @@ async def searchDirectory(ctx, *args):
     rootQuery = "https://api.open5e.com/?format=json"
     rootRequest = requests.get(rootQuery)
 
-    # Throw error if not successfull
-    if rootRequest.status_code != 200: throwCodeError(rootQuery, rootRequest.status_code)
-
     # Iterate through directories, ensure endpoint exists
     rootResponse = rootRequest.json()
     if filteredDirectory not in rootResponse.keys():
@@ -256,7 +325,7 @@ async def searchDirectory(ctx, *args):
         raise Exception("Endpoint ({}) does not exist or isn't accessible".format(filteredDirectory))
 
     # Search API
-    matches = requestAndSearchAPI("https://api.open5e.com/{}/?format=json".format(filteredDirectory), filteredInput)
+    matches = requestAPI("https://api.open5e.com/{}/?format=json".format(filteredDirectory), filteredInput)
 
     if (matches == []):
         embed = discord.Embed(
