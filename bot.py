@@ -1,3 +1,9 @@
+###
+# Project: oghma
+# Author: M-Davies
+# https://github.com/M-Davies
+###
+
 import os
 import requests
 import json
@@ -44,11 +50,17 @@ async def on_command_error(ctx, error):
     # If input is too long
     if isinstance(error, commands.TooManyArguments):
 
-        await ctx.send(embed=discord.Embed(
+        argumentsEmbed = discord.Embed(
             color=discord.Colour.red(),
             title="Too many or Too Few arguments",
             description="`?search` requires at least one argument and cannot support more than 100"
-        ))
+        )
+        argumentsEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
+        argumentsEmbed.set_author(name=botName, icon_url="https://i.imgur.com/rzuIRdT.jpg")
+
+        await ctx.send(embed=argumentsEmbed)
+    
+    else: raise Exception(error)
 
 ###
 # FUNC NAME: ?ping
@@ -91,15 +103,12 @@ def searchResponse(responseResults, filteredInput):
 # FUNC TYPE: Function
 ###
 def requestAPI(query, filteredInput, wideSearch):
-            
-    print("Current query: {}".format(query))
 
     # API Request
     request = requests.get(query)
-    statusCode = request.status_code
 
     # Return code if not successfull
-    if statusCode != 200: return statusCode
+    if request.status_code != 200: return request.status_code
 
     # Iterate through the results
     output = searchResponse(request.json()["results"], filteredInput)
@@ -113,16 +122,15 @@ def requestAPI(query, filteredInput, wideSearch):
         # NOTE: Documents are not supported for this as they are not in /search at the time of writing this
         route = output["route"]
         resourceRequest = requests.get(
-            "https://api.open5e.com/{}/?format=json&limit=10000&search={}"
+            "https://api.open5e.com/{}?format=json&limit=10000&search={}"
             .format(
                 route, 
                 output["name"].split()[0]
             )
         )
-        resourceRequestCode = resourceRequest.status_code
 
         # Return code if not successfull
-        if resourceRequestCode != 200: return resourceRequestCode
+        if resourceRequest.status_code != 200: return resourceRequest.status_code
 
         # Search response again for the actual object
         resourceOutput = searchResponse(resourceRequest.json()["results"], filteredInput)
@@ -139,55 +147,303 @@ def requestAPI(query, filteredInput, wideSearch):
 ###
 def constructResponse(filteredInput, route, matchedObj):
 
-    if hasattr(matchedObj, "title"):
+    # Document
+    if route == "documents/":
+        documentEmbed = None
 
-        # Document
-        documentEmbed = discord.Embed(
-            colour=discord.Colour.green(),
-            title=matchedObj["title"], 
-            description=matchedObj["desc"]
-        )
+        # Description charecter length for embeds is 2048, titles is 256
+        if len(matchedObj["desc"]) >= 2048:
+            documentEmbed = discord.Embed(
+                colour=discord.Colour.green(),
+                title="{} (DOCUMENT)".format(matchedObj["title"]), 
+                description=matchedObj["desc"][:2047]
+            )
+            documentEmbed.add_field(name="Description Continued...", value=matchedObj["desc"][2048:])
+        else:
+            documentEmbed = discord.Embed(
+                colour=discord.Colour.green(),
+                title=matchedObj["title"], 
+                description=matchedObj["desc"]
+            )
         documentEmbed.add_field(name="Authors", value=matchedObj["author"])
         documentEmbed.add_field(name="Link", value=matchedObj["url"], inline=True)
         documentEmbed.add_field(name="Version Number", value=matchedObj["version"], inline=True)
 
         documentEmbed.set_thumbnail(url="https://i.imgur.com/lnkhxCe.jpg")
-        documentEmbed.set_author(name=botName, icon_url="https://i.imgur.com/HxuMICy.jpg")
+        documentEmbed.set_author(name=botName, icon_url="https://i.imgur.com/rzuIRdT.jpg")
 
         return documentEmbed
 
-    # Found something else
-    elif hasattr(matchedObj, "name"):
+    # Spell
+    elif route == "spells/":
+        spellEmbed = None
 
-        # Spell
-        if route == "spells/":
-
+        if len(matchedObj["desc"]) >= 2048:
+            spellEmbed = discord.Embed(
+                colour=discord.Colour.green(),
+                title="{} (SPELL)".format(matchedObj["name"]), 
+                description=matchedObj["desc"][:2047]
+            )
+            spellEmbed.add_field(name="Description Continued...", value=matchedObj["desc"][2048:])
+        else:
             spellEmbed = discord.Embed(
                 colour=discord.Colour.green(),
                 title=matchedObj["name"], 
                 description=matchedObj["desc"]
             )
-            if matchedObj["higher_level"] != "": spellEmbed.add_field(name="Higher Level", value=matchedObj["higher_level"])
-            
-            spellEmbed.add_field(name="School", value=matchedObj["school"])
-            spellEmbed.add_field(name="Level", value=matchedObj["level"], inline=True)
-            spellEmbed.add_field(name="Duration", value=matchedObj["duration"], inline=True)
-            spellEmbed.add_field(name="Casting Time", value=matchedObj["casting_time"], inline=True)
-            spellEmbed.add_field(name="Range", value=matchedObj["range"], inline=True)
-            spellEmbed.add_field(name="Concentration?", value=matchedObj["concentration"], inline=True)
-            spellEmbed.add_field(name="Ritual?", value=matchedObj["ritual"], inline=True)
+        if matchedObj["higher_level"] != "": spellEmbed.add_field(name="Higher Level", value=matchedObj["higher_level"])
+        
+        spellEmbed.add_field(name="School", value=matchedObj["school"])
+        spellEmbed.add_field(name="Level", value=matchedObj["level"], inline=True)
+        spellEmbed.add_field(name="Duration", value=matchedObj["duration"], inline=True)
+        spellEmbed.add_field(name="Casting Time", value=matchedObj["casting_time"], inline=True)
+        spellEmbed.add_field(name="Range", value=matchedObj["range"], inline=True)
+        spellEmbed.add_field(name="Concentration?", value=matchedObj["concentration"], inline=True)
+        spellEmbed.add_field(name="Ritual?", value=matchedObj["ritual"], inline=True)
 
-            spellEmbed.add_field(name="Spell Components", value=matchedObj["components"])
-            if "M" in matchedObj["components"]: spellEmbed.add_field(name="Material", value=matchedObj["material"])
+        spellEmbed.add_field(name="Spell Components", value=matchedObj["components"])
+        if "M" in matchedObj["components"]: spellEmbed.add_field(name="Material", value=matchedObj["material"])
 
-            spellEmbed.set_footer(text="Page: {}".format(matchedObj["page"]))
+        spellEmbed.set_footer(text="Page: {}".format(matchedObj["page"]))
 
-            spellEmbed.set_thumbnail(url="https://i.imgur.com/lnkhxCe.jpg")
-            spellEmbed.set_author(name=botName, icon_url="https://i.imgur.com/HxuMICy.jpg")
+        spellEmbed.set_thumbnail(url="https://i.imgur.com/W15EmNT.jpg")
+        spellEmbed.set_author(name=botName, icon_url="https://i.imgur.com/rzuIRdT.jpg")
 
-            return spellEmbed
+        return spellEmbed
 
-        # Monster
+    # Monster
+    elif route == "monsters/":
+        monsterEmbeds = []
+
+        ## 1ST EMBED ##
+        monsterEmbedBasics = discord.Embed(
+            colour=discord.Colour.green(),
+            title="{}: BASIC STATS".format(matchedObj["name"]), 
+            description="**TYPE**: {}\n**SUBTYPE**: {}\n**ALIGNMENT**: {}\n**SIZE**: {}".format(
+                matchedObj["type"] if matchedObj["type"] != "" else "None", 
+                matchedObj["subtype"] if matchedObj["subtype"] != "" else "None", 
+                matchedObj["alignment"] if matchedObj["alignment"] != "" else "None",
+                matchedObj["size"]
+            )
+        )
+
+        # Stats
+        # Str
+        if matchedObj["strength_save"] != None:
+            monsterEmbedBasics.add_field(
+                name="STRENGTH",
+                value="**{}** (SAVE: **{}**)".format(
+                    matchedObj["strength"],
+                    matchedObj["strength_save"]
+                ),
+                inline=True
+            )
+        else:
+            monsterEmbedBasics.add_field(
+                name="STRENGTH",
+                value="**{}**".format(matchedObj["strength"]),
+                inline=True
+            )
+
+        # Dex
+        if matchedObj["dexterity_save"] != None:
+            monsterEmbedBasics.add_field(
+                name="DEXTERITY",
+                value="**{}** (SAVE: **{}**)".format(
+                    matchedObj["dexterity"],
+                    matchedObj["dexterity_save"]
+                ),
+                inline=True
+            )
+        else:
+            monsterEmbedBasics.add_field(
+                name="DEXTERITY",
+                value="**{}**".format(matchedObj["dexterity"]),
+                inline=True
+            )
+
+        # Con
+        if matchedObj["constitution_save"] != None:
+            monsterEmbedBasics.add_field(
+                name="CONSTITUTION",
+                value="**{}** (SAVE: **{}**)".format(
+                    matchedObj["constitution"],
+                    matchedObj["constitution_save"]
+                ),
+                inline=True
+            )
+        else:
+            monsterEmbedBasics.add_field(
+                name="CONSTITUTION",
+                value="**{}**".format(matchedObj["constitution"]),
+                inline=True
+            )
+
+        # Int
+        if matchedObj["intelligence_save"] != None:
+            monsterEmbedBasics.add_field(
+                name="INTELLIGENCE",
+                value="**{}** (SAVE: **{}**)".format(
+                    matchedObj["intelligence"],
+                    matchedObj["intelligence_save"]
+                ),
+                inline=True
+            )
+        else:
+            monsterEmbedBasics.add_field(
+                name="INTELLIGENCE",
+                value="**{}**".format(matchedObj["intelligence"]),
+                inline=True
+            )
+
+        # Wis
+        if matchedObj["wisdom_save"] != None:
+            monsterEmbedBasics.add_field(
+                name="WISDOM",
+                value="**{}** (SAVE: **{}**)".format(
+                    matchedObj["wisdom"],
+                    matchedObj["wisdom_save"]
+                ),
+                inline=True
+            )
+        else:
+            monsterEmbedBasics.add_field(
+                name="WISDOM",
+                value="**{}**".format(matchedObj["wisdom"]),
+                inline=True
+            )
+
+        # Cha
+        if matchedObj["charisma_save"] != None:
+            monsterEmbedBasics.add_field(
+                name="CHARISMA",
+                value="**{}** (SAVE: **{}**)".format(
+                    matchedObj["charisma"],
+                    matchedObj["charisma_save"]
+                ),
+                inline=True
+            )
+        else:
+            monsterEmbedBasics.add_field(
+                name="CHARISMA",
+                value="**{}**".format(matchedObj["charisma"]),
+                inline=True
+            )
+
+        # Hit points/dice
+        monsterEmbedBasics.add_field(
+            name="HIT POINTS ({})".format(str(matchedObj["hit_points"])), 
+            value=matchedObj["hit_dice"], 
+            inline=True
+        )
+
+        # Speeds
+        monsterSpeeds = ""
+        for speed in matchedObj["speed"].items(): 
+            monsterSpeeds += "**{}**: {}\n".format(speed[0].upper(), str(speed[1]))
+        monsterEmbedBasics.add_field(name="SPEED", value=monsterSpeeds, inline=True)
+
+        # Armour
+        monsterEmbedBasics.add_field(
+            name="ARMOUR CLASS", 
+            value="{} ({})".format(str(matchedObj["armor_class"]), matchedObj["armor_desc"]),
+            inline=True
+        )
+
+        monsterEmbeds.append(monsterEmbedBasics)
+
+        ## 2ND EMBED ##
+        monsterEmbedSkills = discord.Embed(
+            colour=discord.Colour.green(),
+            title="{}: SKILLS & PROFICIENCIES".format(matchedObj["name"])
+        )
+
+        # Skills & Perception
+        if matchedObj["skills"] != {} and matchedObj["perception"] != None:
+            monsterSkills = ""
+            for skill in matchedObj["skills"].items(): 
+                monsterSkills += "**{}**: {}\n".format(skill[0].upper(), str(skill[1]))
+            monsterEmbedSkills.add_field(name="SKILLS", value=monsterSkills, inline=True)
+
+        elif matchedObj["perception"] != None:
+            monsterEmbedSkills.add_field(name="PERCEPTION", value=str(matchedObj["perception"]), inline=True)
+        else: pass
+
+        # Senses
+        monsterEmbedSkills.add_field(name="SENSES", value=matchedObj["senses"], inline=True)
+
+        # Languages
+        monsterEmbedSkills.add_field(name="LANGUAGES", value=matchedObj["languages"], inline=True)
+
+        # Damage conditionals
+        monsterEmbedSkills.add_field(
+            name="STRENGTHS & WEAKNESSES",
+            value="**VULNERABLE TO:** {}\n**RESISTANT TO:** {}\n**IMMUNE TO:** {}".format(
+                matchedObj["damage_vulnerabilities"] if matchedObj["damage_vulnerabilities"] != None else "Nothing",
+                matchedObj["damage_resistances"] if matchedObj["damage_resistances"] != None else "Nothing",
+                matchedObj["damage_immunities"] if matchedObj["damage_immunities"] != None else "Nothing" 
+                    + ", "
+                        + matchedObj["condition_immunities"] if matchedObj["condition_immunities"] != None else "Nothing",
+            ),
+            inline=False
+        )
+
+        monsterEmbeds.append(monsterEmbedSkills)
+
+        ## 3RD EMBED ##
+        monsterEmbedActions = discord.Embed(
+            colour=discord.Colour.green(),
+            title="{}: ACTIONS AND ABILITIES".format(matchedObj["name"])
+        )
+
+        # Actions
+        for action in matchedObj["actions"]:
+            monsterEmbedActions.add_field(
+                name=action["name"],
+                value=action["desc"],
+                inline=False
+            )
+        
+        # Reactions
+        if matchedObj["reactions"] != "":
+            for reaction in matchedObj["reactions"]:
+                monsterEmbedActions.add_field(
+                    name=reaction["name"],
+                    value=reaction["desc"],
+                    inline=False
+                )
+
+        # Specials
+        for special in matchedObj["special_abilities"]:
+            monsterEmbedActions.add_field(
+                name=special["name"],
+                value=special["desc"],
+                inline=False
+            )
+
+        # Spells
+        if matchedObj["spell_list"] != []:
+            for spell in matchedObj["spell_list"]:
+                spellSplit = spell.replace("-", " ").split("/")
+                spellSplit.pop()
+                monsterEmbedActions.add_field(
+                    name=spellSplit.pop().upper(),
+                    value="To see spell info, `?searchdir SPELLS {}`".format(spellSplit.pop().upper()),
+                    inline=False
+                )
+
+        monsterEmbeds.append(monsterEmbedActions)
+
+        # Challenge rating & Image
+        for embed in monsterEmbeds: 
+            embed.set_footer(text="CHALLENGE RATING: {}".format(matchedObj["challenge_rating"]))
+            embed.set_author(name=botName, icon_url="https://i.imgur.com/rzuIRdT.jpg")
+
+            if matchedObj["img_main"] != None: embed.set_thumbnail(url=matchedObj["img_main"])
+            else: embed.set_thumbnail(url="https://i.imgur.com/6HsoQ7H.jpg")
+
+        # Return all embeds
+        return monsterEmbeds
 
         # Background
 
@@ -224,18 +480,17 @@ async def search(ctx, *args):
 
     # Filter input to remove whitespaces and set lowercase
     filteredInput = "".join(args).lower()
-    print("Filtered input is {}".format(filteredInput))
 
     # Search API
     await ctx.send(embed=discord.Embed(
         color=discord.Colour.blue(),
-        title="SEARCHING ALL ENDPOINTS FOR {} (filtered input)...".format(filteredInput),
+        title="SEARCHING ALL ENDPOINTS FOR {} (filtered input)...".format(args),
         description="WARNING: This may take a while!"
     ))
     
     # Use first word to narrow search results down for quicker response
     match = requestAPI("https://api.open5e.com/search/?format=json&limit=10000&text={}".format(str(args[0])), filteredInput, True)
-    
+
     # An API Request failed
     if isinstance(match, int):
         codeEmbed = discord.Embed(
@@ -246,8 +501,8 @@ async def search(ctx, *args):
         
         codeEmbed.add_field(name="For more idea on what went wrong:", value="See status codes at https://www.django-rest-framework.org/api-guide/status-codes/")
 
-        codeEmbed.set_thumbnail(url="https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/240/apple/237/cross-mark_274c.png")
-        codeEmbed.set_author(name=botName, icon_url="https://i.imgur.com/HxuMICy.jpg")
+        codeEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
+        codeEmbed.set_author(name=botName, icon_url="https://i.imgur.com/rzuIRdT.jpg")
 
         return await ctx.send(embed=codeEmbed)
 
@@ -259,17 +514,15 @@ async def search(ctx, *args):
             description="No matches found for **{}** in the search endpoint".format(filteredInput.upper())
         )
 
-        noMatchEmbed.set_thumbnail(url="https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/240/apple/237/black-question-mark-ornament_2753.png")
-        noMatchEmbed.set_author(name=botName, icon_url="https://i.imgur.com/HxuMICy.jpg")
+        noMatchEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
+        noMatchEmbed.set_author(name=botName, icon_url="https://i.imgur.com/rzuIRdT.jpg")
 
         return await ctx.send(embed=noMatchEmbed)
 
     # Otherwise, construct response embed message
-    else: 
-        responseEmbed = constructResponse(filteredInput, match["route"], match["matchedObj"])
-
-        # Send response
-        return await ctx.send(embed=responseEmbed)
+    else:
+        responseEmbeds = constructResponse(filteredInput, match["route"], match["matchedObj"])
+        for embed in responseEmbeds: await ctx.send(embed=embed)
 
 ###
 # FUNC NAME: ?searchdir [RESOURCE] [ENTITY]
@@ -280,66 +533,6 @@ async def search(ctx, *args):
 ###
 @bot.command(name='searchdir', help='Queries the Open5e API to get the entities infomation from the specified resource.\nUsage: ?searchdir [RESOURCE] [ENTITY]')
 async def searchdir(ctx, *args):
-
-    rawDirectory = ""
-    if len(args) == 1:
-        rawDirectory = "search"
-    elif len(args) == 2:
-        rawDirectory == args[0]
-    else:
-        raise Exception("Command requires at least one parameter")
-
-
-    print(args)
-
-    rawDirectory = "Spels" # TODO: Find way to get from discord
-    if rawDirectory == "": rawDirectory = "search" #TODO: Simulate empty 1st parameter
-
-    rawInput = "Wish" # TODO: Find way to get from discord
-
-    if rawInput == "": raise Exception("Command requires at least one parameter")
-
-    # Filter input to remove whitespaces and set lowercase
-    filteredInput = rawInput.replace(" ", "").lower()
-    filteredDirectory = rawDirectory.lower()
-
-    # Get Open5e root
-    rootQuery = "https://api.open5e.com/?format=json"
-    rootRequest = requests.get(rootQuery)
-
-    # Iterate through directories, ensure endpoint exists
-    rootResponse = rootRequest.json()
-    if filteredDirectory not in rootResponse.keys():
-
-        # Construct error embed
-        embed = discord.Embed(
-            colour=255,
-            title="ERROR", 
-            description="Endpoint ({}) does not exist or isn't accessible".format(filteredDirectory)
-        )
-        embed.add_field(name="Available endpoints:", value="")
-        for entity, link in rootResponse.items(): embed.add_field(name=entity, value=link)
-        embed.set_author(name=botName, icon_url="https://i.imgur.com/HxuMICy.jpg")
-
-        await ctx.send(embed=embed) 
-        raise Exception("Endpoint ({}) does not exist or isn't accessible".format(filteredDirectory))
-
-    # Search API
-    matches = requestAPI("https://api.open5e.com/{}/?format=json".format(filteredDirectory), filteredInput)
-
-    if (matches == []):
-        embed = discord.Embed(
-            colour="#FF0000",
-            title="ERROR", 
-            description="No matches found for {} in the {} endpoint".format(filteredInput, filteredDirectory),
-        )
-        embed.set_author(name=botName, icon_url="https://i.imgur.com/rzuIRdT.jpg")
-
-        await ctx.send(embed) # TODO: Figure out way to send embeds
-    else:
-        print(matches)
-
-    await ctx.send(matches) # TODO: Figure out way to send embeds
-    # await bot.say(embed=embed)
+    print("no")
 
 bot.run(TOKEN)
