@@ -19,6 +19,7 @@ botName = "Oghma"
 TOKEN = os.getenv('BOT_TOKEN')
 bot = commands.Bot(command_prefix='?')
 client = discord.Client()
+partialMatch = False
 
 # Set up logging
 logger = logging.getLogger('discord')
@@ -56,7 +57,7 @@ async def on_command_error(ctx, error):
             description="`?search` requires at least one argument and cannot support more than 100"
         )
         argumentsEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-        argumentsEmbed.set_author(name=botName, icon_url="https://i.imgur.com/rzuIRdT.jpg")
+        argumentsEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
 
         await ctx.send(embed=argumentsEmbed)
     
@@ -77,23 +78,38 @@ async def ping(ctx):
 # FUNC TYPE: Function
 ###
 def searchResponse(responseResults, filteredInput):
-    
+    global partialMatch
     match = None
-    for i in responseResults:
+    for entity in responseResults:
 
         # Strip whitespaces and lower case before checking if it's match
-        if hasattr(i, "title"):
+        if "title" in entity:
 
-            # Has to be in it's own if to avoid KeyErrors
-            if i["title"].replace(" ", "").lower() == filteredInput:
-                match = i
+            # Has to be in it's own "if" to avoid KeyErrors
+            if entity["title"].replace(" ", "").lower() == filteredInput:
+                match = entity
+                break
+
+            # Now try partially matching the entity (i.e. bluedragon will match adultbluedragon here)
+            if filteredInput in entity["title"].replace(" ", "").lower():
+                partialMatch = True
+
+                match = entity
                 break
         
-        elif i["name"].replace(" ", "").lower() == filteredInput:
-            match = i
-            break
+        elif "name" in entity:
+            
+            if entity["name"].replace(" ", "").lower() == filteredInput:
+                match = entity
+                break
 
-        else: pass #TODO: ADD UNSUPPORTED OBJECT HERE
+            if filteredInput in entity["name"].replace(" ", "").lower():
+                partialMatch = True
+
+                match = entity
+                break
+
+        else: raise Exception("Object does not have a 'name' or 'title' field\n**OBJECT**: {}".format(entity))
 
     return match
 
@@ -142,10 +158,11 @@ def requestAPI(query, filteredInput, wideSearch):
 
 ###
 # FUNC NAME: constructResponse
-# FUNC DESC: Constructs an embed response from the API object.
+# FUNC DESC: Constructs embed responses from the API object.
 # FUNC TYPE: Function
 ###
 def constructResponse(filteredInput, route, matchedObj):
+    responseEmbeds = []
 
     # Document
     if route == "documents/":
@@ -165,14 +182,15 @@ def constructResponse(filteredInput, route, matchedObj):
                 title=matchedObj["title"], 
                 description=matchedObj["desc"]
             )
-        documentEmbed.add_field(name="Authors", value=matchedObj["author"])
+        documentEmbed.add_field(name="Authors", value=matchedObj["author"], inline=False)
         documentEmbed.add_field(name="Link", value=matchedObj["url"], inline=True)
         documentEmbed.add_field(name="Version Number", value=matchedObj["version"], inline=True)
+        documentEmbed.add_field(name="Copyright", value=matchedObj["copyright"], inline=False)
 
         documentEmbed.set_thumbnail(url="https://i.imgur.com/lnkhxCe.jpg")
-        documentEmbed.set_author(name=botName, icon_url="https://i.imgur.com/rzuIRdT.jpg")
+        documentEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
 
-        return documentEmbed
+        responseEmbeds.append(documentEmbed)
 
     # Spell
     elif route == "spells/":
@@ -184,16 +202,17 @@ def constructResponse(filteredInput, route, matchedObj):
                 title="{} (SPELL)".format(matchedObj["name"]), 
                 description=matchedObj["desc"][:2047]
             )
-            spellEmbed.add_field(name="Description Continued...", value=matchedObj["desc"][2048:])
+            spellEmbed.add_field(name="Description Continued...", value=matchedObj["desc"][2048:], inline=False)
         else:
             spellEmbed = discord.Embed(
                 colour=discord.Colour.green(),
                 title=matchedObj["name"], 
                 description=matchedObj["desc"]
             )
-        if matchedObj["higher_level"] != "": spellEmbed.add_field(name="Higher Level", value=matchedObj["higher_level"])
+        if matchedObj["higher_level"] != "": 
+            spellEmbed.add_field(name="Higher Level", value=matchedObj["higher_level"], inline=False)
         
-        spellEmbed.add_field(name="School", value=matchedObj["school"])
+        spellEmbed.add_field(name="School", value=matchedObj["school"], inline=False)
         spellEmbed.add_field(name="Level", value=matchedObj["level"], inline=True)
         spellEmbed.add_field(name="Duration", value=matchedObj["duration"], inline=True)
         spellEmbed.add_field(name="Casting Time", value=matchedObj["casting_time"], inline=True)
@@ -201,33 +220,30 @@ def constructResponse(filteredInput, route, matchedObj):
         spellEmbed.add_field(name="Concentration?", value=matchedObj["concentration"], inline=True)
         spellEmbed.add_field(name="Ritual?", value=matchedObj["ritual"], inline=True)
 
-        spellEmbed.add_field(name="Spell Components", value=matchedObj["components"])
-        if "M" in matchedObj["components"]: spellEmbed.add_field(name="Material", value=matchedObj["material"])
-
-        spellEmbed.set_footer(text="Page: {}".format(matchedObj["page"]))
+        spellEmbed.add_field(name="Spell Components", value=matchedObj["components"], inline=True)
+        if "M" in matchedObj["components"]: spellEmbed.add_field(name="Material", value=matchedObj["material"], inline=True)
+        spellEmbed.add_field(name="Page Number", value=matchedObj["page"], inline=True)
 
         spellEmbed.set_thumbnail(url="https://i.imgur.com/W15EmNT.jpg")
-        spellEmbed.set_author(name=botName, icon_url="https://i.imgur.com/rzuIRdT.jpg")
+        spellEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
 
-        return spellEmbed
+        responseEmbeds.append(spellEmbed)
 
     # Monster
     elif route == "monsters/":
-        monsterEmbeds = []
-
         ## 1ST EMBED ##
         monsterEmbedBasics = discord.Embed(
             colour=discord.Colour.green(),
-            title="{}: BASIC STATS".format(matchedObj["name"]), 
-            description="**TYPE**: {}\n**SUBTYPE**: {}\n**ALIGNMENT**: {}\n**SIZE**: {}".format(
+            title="{} (MONSTER): BASIC STATS".format(matchedObj["name"]), 
+            description="**TYPE**: {}\n**SUBTYPE**: {}\n**ALIGNMENT**: {}\n**SIZE**: {}\n**CHALLENGE RATING**: {}".format(
                 matchedObj["type"] if matchedObj["type"] != "" else "None", 
                 matchedObj["subtype"] if matchedObj["subtype"] != "" else "None", 
                 matchedObj["alignment"] if matchedObj["alignment"] != "" else "None",
-                matchedObj["size"]
+                matchedObj["size"],
+                matchedObj["challenge_rating"]
             )
         )
 
-        # Stats
         # Str
         if matchedObj["strength_save"] != None:
             monsterEmbedBasics.add_field(
@@ -350,12 +366,12 @@ def constructResponse(filteredInput, route, matchedObj):
             inline=True
         )
 
-        monsterEmbeds.append(monsterEmbedBasics)
+        responseEmbeds.append(monsterEmbedBasics)
 
         ## 2ND EMBED ##
         monsterEmbedSkills = discord.Embed(
             colour=discord.Colour.green(),
-            title="{}: SKILLS & PROFICIENCIES".format(matchedObj["name"])
+            title="{} (MONSTER): SKILLS & PROFICIENCIES".format(matchedObj["name"])
         )
 
         # Skills & Perception
@@ -388,12 +404,12 @@ def constructResponse(filteredInput, route, matchedObj):
             inline=False
         )
 
-        monsterEmbeds.append(monsterEmbedSkills)
+        responseEmbeds.append(monsterEmbedSkills)
 
         ## 3RD EMBED ##
         monsterEmbedActions = discord.Embed(
             colour=discord.Colour.green(),
-            title="{}: ACTIONS AND ABILITIES".format(matchedObj["name"])
+            title="{} (MONSTER): ACTIONS AND ABILITIES".format(matchedObj["name"])
         )
 
         # Actions
@@ -432,38 +448,68 @@ def constructResponse(filteredInput, route, matchedObj):
                     inline=False
                 )
 
-        monsterEmbeds.append(monsterEmbedActions)
+        responseEmbeds.append(monsterEmbedActions)
 
-        # Challenge rating & Image
-        for embed in monsterEmbeds: 
-            embed.set_footer(text="CHALLENGE RATING: {}".format(matchedObj["challenge_rating"]))
-            embed.set_author(name=botName, icon_url="https://i.imgur.com/rzuIRdT.jpg")
+        ## 4TH EMBED (only used if it has legendary actions) ##
+        if matchedObj["legendary_desc"] != "":
+            monsterEmbedLegend = discord.Embed(
+                colour=discord.Colour.green(),
+                title="{} (MONSTER): LEGENDARY ACTIONS AND ABILITIES".format(matchedObj["name"]),
+                description=matchedObj["legendary_desc"]
+            )
+
+            for action in matchedObj["legendary_actions"]:
+                monsterEmbedLegend.add_field(
+                    name=action["name"],
+                    value=action["desc"],
+                    inline=False
+                )
+
+            responseEmbeds.append(monsterEmbedLegend)
+
+        # Author & Image for all embeds
+        for embed in responseEmbeds: 
+            embed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
 
             if matchedObj["img_main"] != None: embed.set_thumbnail(url=matchedObj["img_main"])
             else: embed.set_thumbnail(url="https://i.imgur.com/6HsoQ7H.jpg")
 
-        # Return all embeds
-        return monsterEmbeds
+    # Background
 
-        # Background
+    # Plane
 
-        # Plane
+    # Section
 
-        # Section
+    # Feat
 
-        # Feat
+    # Condition
 
-        # Condition
+    # Race
 
-        # Race
+    # Class
 
-        # Class
+    # Magic Item
 
-        # Magic Item
-
-        # Weapon
+    # Weapon
     
-    else: raise Exception("UNEXPECTED FAIL!")
+    else:
+        # Don't add a footer to an error embed
+        global partialMatch
+        partialMatch = False
+
+        noRouteEmbed = discord.Embed(
+            colour=discord.Colour.red(),
+            title="The matched item's type (i.e. spell, monster, etc) was not recognised",
+            description="Please create an issue describing this failure and with the following values at https://github.com/M-Davies/oghma/issues\n**Input**: {}\n**Route**: {}\n**Troublesome Object**: {}".format(
+                filteredInput, route, matchedObj
+            )
+        )
+        noRouteEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
+        noRouteEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
+        
+        responseEmbeds.append(noRouteEmbed)
+
+    return responseEmbeds
 
 
 ###
@@ -474,6 +520,10 @@ def constructResponse(filteredInput, route, matchedObj):
 ###
 @bot.command(pass_context=True, name='search', help='Queries the Open5e API to get the entities infomation.\nUsage: ?search [ENTITY]')
 async def search(ctx, *args):
+
+    # Import & reset globals
+    global partialMatch
+    partialMatch = False
 
     # Verify arg length
     if len(args) > 100 or len(args) <= 0: raise commands.TooManyArguments
@@ -502,7 +552,7 @@ async def search(ctx, *args):
         codeEmbed.add_field(name="For more idea on what went wrong:", value="See status codes at https://www.django-rest-framework.org/api-guide/status-codes/")
 
         codeEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-        codeEmbed.set_author(name=botName, icon_url="https://i.imgur.com/rzuIRdT.jpg")
+        codeEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
 
         return await ctx.send(embed=codeEmbed)
 
@@ -515,14 +565,20 @@ async def search(ctx, *args):
         )
 
         noMatchEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
-        noMatchEmbed.set_author(name=botName, icon_url="https://i.imgur.com/rzuIRdT.jpg")
+        noMatchEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
 
         return await ctx.send(embed=noMatchEmbed)
 
-    # Otherwise, construct response embed message
+    # Otherwise, construct & send response embeds
     else:
         responseEmbeds = constructResponse(filteredInput, match["route"], match["matchedObj"])
-        for embed in responseEmbeds: await ctx.send(embed=embed)
+        for embed in responseEmbeds:
+
+            # Note partial match in footer of embed
+            if partialMatch == True: 
+                embed.set_footer(text="NOTE: Your search term ({}) was a PARTIAL match to this entity in the Open5e API. If this isn't the entity you were expecting, try refining your search term".format(args))
+
+            await ctx.send(embed=embed)
 
 ###
 # FUNC NAME: ?searchdir [RESOURCE] [ENTITY]
