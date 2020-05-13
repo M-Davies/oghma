@@ -507,9 +507,18 @@ def constructResponse(filteredInput, route, matchedObj):
 
         responseEmbeds.append(backgroundEmbed)
 
-        
-
     # Plane
+    if route == "plane/":
+        planeEmbed = discord.Embed(
+            colour=discord.Colour.green(),
+            title="{} (PLANE)".format(matchedObj["name"]),
+            description=matchedObj["desc"]
+        )
+
+        planeEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
+        planeEmbed.set_thumbnail(url="https://i.imgur.com/GJk1HFh.jpg")
+
+        responseEmbeds.append(planeEmbed)
 
     # Section
 
