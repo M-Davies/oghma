@@ -1,7 +1,7 @@
 ###
 # Project: oghma
-# Author: M-Davies
-# https://github.com/M-Davies
+# Author: shadowedlucario
+# https://github.com/shadowedlucario
 ###
 
 import os
@@ -47,21 +47,8 @@ async def on_ready():
 ###
 @bot.event
 async def on_command_error(ctx, error):
-
-    # If input is too long
-    if isinstance(error, commands.TooManyArguments):
-
-        argumentsEmbed = discord.Embed(
-            color=discord.Colour.red(),
-            title="Too many or Too Few arguments",
-            description="`?search` requires at least one argument and cannot support more than 100"
-        )
-        argumentsEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-        argumentsEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
-
-        await ctx.send(embed=argumentsEmbed)
     
-    else: raise Exception(error)
+    raise Exception(error)
 
 ###
 # FUNC NAME: ?ping
@@ -441,10 +428,13 @@ def constructResponse(filteredInput, route, matchedObj):
         if matchedObj["spell_list"] != []:
             for spell in matchedObj["spell_list"]:
                 spellSplit = spell.replace("-", " ").split("/")
-                spellSplit.pop()
+
+                # Remove trailing /, leaving the spell name as the last element in list
+                del spellSplit[-1]
+
                 monsterEmbedActions.add_field(
-                    name=spellSplit.pop().upper(),
-                    value="To see spell info, `?searchdir SPELLS {}`".format(spellSplit.pop().upper()),
+                    name=spellSplit[-1].upper(),
+                    value="To see spell info, `?searchdir SPELLS {}`".format(spellSplit[-1].upper()),
                     inline=False
                 )
 
@@ -475,6 +465,49 @@ def constructResponse(filteredInput, route, matchedObj):
             else: embed.set_thumbnail(url="https://i.imgur.com/6HsoQ7H.jpg")
 
     # Background
+    elif route == "background/":
+        backgroundEmbed = discord.Embed(
+            colour=discord.Colour.green(),
+            title="{} (BACKGROUND)".format(matchedObj["name"])
+        )
+
+        # Description
+        backgroundEmbed.add_field(name="DESCRIPTION", value=matchedObj["desc"], inline=False)
+
+        # Profs
+        if matchedObj["tool_proficiencies"] != None: 
+            backgroundEmbed.add_field(name="PROFICIENCIES", value="**SKILL**: {}\n**TOOL**: {}".format(
+                matchedObj["skill_proficiencies"],
+                matchedObj["tool_proficiencies"]
+                ),
+                inline=True
+            )
+        else:
+            backgroundEmbed.add_field(name="PROFICIENCIES", value="**SKILL**: {}".format(
+                matchedObj["skill_proficiencies"]
+                ),
+                inline=True
+            )
+
+        # Languages
+        if matchedObj["languages"] != None: backgroundEmbed.add_field(name="LANGUAGES", value=matchedObj["languages"], inline=True)
+
+        # Equipment
+        backgroundEmbed.add_field(name="EQUIPMENT", value=matchedObj["equipment"], inline=False)
+
+        # Feature
+        backgroundEmbed.add_field(name=matchedObj["feature"], value=matchedObj["feature_desc"], inline=False)
+
+        # Charecteristics
+        if matchedObj["suggested_characteristics"] != None:
+            backgroundEmbed.add_field(name="CHARECTERISTICS", value=matchedObj["suggested_characteristics"], inline=False)
+
+        backgroundEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
+        backgroundEmbed.set_thumbnail(url="https://i.imgur.com/GhGODan.jpg")
+
+        responseEmbeds.append(backgroundEmbed)
+
+        
 
     # Plane
 
@@ -518,7 +551,12 @@ def constructResponse(filteredInput, route, matchedObj):
 # ENTITY: The DND entity you wish to get infomation on.
 # FUNC TYPE: Command
 ###
-@bot.command(pass_context=True, name='search', help='Queries the Open5e API to get the entities infomation.\nUsage: ?search [ENTITY]')
+@bot.command(
+    pass_context=True,
+    name='search',
+    help='Queries the Open5e API to get the entities infomation.\nUsage: ?search [ENTITY]',
+    usage='?search [ENTITY]'
+)
 async def search(ctx, *args):
 
     # Import & reset globals
@@ -526,7 +564,16 @@ async def search(ctx, *args):
     partialMatch = False
 
     # Verify arg length
-    if len(args) > 100 or len(args) <= 0: raise commands.TooManyArguments
+    if len(args) > 100 or len(args) <= 0:
+        argumentsEmbed = discord.Embed(
+            color=discord.Colour.red(),
+            title="Invalid arguments",
+            description="`?{}` requires at least one argument and cannot support more than 100\nUsage: `?search [D&D OBJECT YOU WANT TO SEARCH FOR]`"
+        )
+        argumentsEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
+        argumentsEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
+
+        return await ctx.send(embed=argumentsEmbed)
 
     # Filter input to remove whitespaces and set lowercase
     filteredInput = "".join(args).lower()
@@ -576,7 +623,9 @@ async def search(ctx, *args):
 
             # Note partial match in footer of embed
             if partialMatch == True: 
-                embed.set_footer(text="NOTE: Your search term ({}) was a PARTIAL match to this entity in the Open5e API. If this isn't the entity you were expecting, try refining your search term".format(args))
+                embed.set_footer(text="NOTE: Your search term ({}) was a PARTIAL match to this entity. If this isn't the entity you were expecting, try refining your search term or use ?searchdir instead".format(args))
+            else:
+                embed.set_footer(text="NOTE: If this isn't the entity you were expecting, try refining your search term or use ?searchdir instead")
 
             await ctx.send(embed=embed)
 
