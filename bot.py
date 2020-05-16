@@ -45,10 +45,10 @@ async def on_ready():
 # FUNC DESC: If an error is thrown this func is executed
 # FUNC TYPE: Event
 ###
-@bot.event
-async def on_command_error(ctx, error):
+# @bot.event
+# async def on_command_error(ctx, error):
     
-    raise Exception(error)
+#     raise Exception(error)
 
 ###
 # FUNC NAME: ?ping
@@ -175,7 +175,6 @@ def constructResponse(filteredInput, route, matchedObj):
         documentEmbed.add_field(name="Copyright", value=matchedObj["copyright"], inline=False)
 
         documentEmbed.set_thumbnail(url="https://i.imgur.com/lnkhxCe.jpg")
-        documentEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
 
         responseEmbeds.append(documentEmbed)
 
@@ -212,7 +211,6 @@ def constructResponse(filteredInput, route, matchedObj):
         spellEmbed.add_field(name="Page Number", value=matchedObj["page"], inline=True)
 
         spellEmbed.set_thumbnail(url="https://i.imgur.com/W15EmNT.jpg")
-        spellEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
 
         responseEmbeds.append(spellEmbed)
 
@@ -458,9 +456,7 @@ def constructResponse(filteredInput, route, matchedObj):
             responseEmbeds.append(monsterEmbedLegend)
 
         # Author & Image for all embeds
-        for embed in responseEmbeds: 
-            embed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
-
+        for embed in responseEmbeds:
             if matchedObj["img_main"] != None: embed.set_thumbnail(url=matchedObj["img_main"])
             else: embed.set_thumbnail(url="https://i.imgur.com/6HsoQ7H.jpg")
 
@@ -502,7 +498,6 @@ def constructResponse(filteredInput, route, matchedObj):
         if matchedObj["suggested_characteristics"] != None:
             backgroundEmbed.add_field(name="CHARECTERISTICS", value=matchedObj["suggested_characteristics"], inline=False)
 
-        backgroundEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
         backgroundEmbed.set_thumbnail(url="https://i.imgur.com/GhGODan.jpg")
 
         responseEmbeds.append(backgroundEmbed)
@@ -515,12 +510,89 @@ def constructResponse(filteredInput, route, matchedObj):
             description=matchedObj["desc"]
         )
 
-        planeEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
+        
         planeEmbed.set_thumbnail(url="https://i.imgur.com/GJk1HFh.jpg")
 
         responseEmbeds.append(planeEmbed)
 
     # Section
+    if route == "sections/":
+        sectionEmbedDesc = discord.Embed(
+            colour=discord.Colour.green(),
+            title="{} (SECTION)".format(matchedObj["name"]),
+            description="**TYPE**\n{}".format(matchedObj["parent"])
+        )
+
+        # Embed charecter limit is 6000. Accounting for title, type and author gives us around 5700 charecters to work with
+        # Embed Field names are also limited to 256 charecters and their values to 1024
+
+        # Desc is organised into titles and descriptions, seperated by hashses. There is also a general description at start
+        splitDesc = matchedObj["desc"].split("\n")
+
+        # Remove empty strings from array. Can't use filter since we need to work with index() later on.
+        for entry in splitDesc: 
+            if entry == "": splitDesc.remove(entry)
+
+        # Find the general description
+        firstTitleIndex = 0
+        generalDescription = ""
+
+        for line in splitDesc:
+
+            # If we hit a title, stop and record where. Otherwise, add to our general description
+            if line[0] == "#":
+                firstTitleIndex = splitDesc.index(line)
+                break
+            else: generalDescription += " " + line
+
+        sectionEmbedDesc.add_field(name="DESCRIPTON", value=generalDescription, inline=False)
+        responseEmbeds.append(sectionEmbedDesc)
+
+        # Remove general description from the list to help parse the rest of it
+        lineCount = 0
+        while lineCount < firstTitleIndex:
+            del splitDesc[0]
+            lineCount += 1
+
+        # Create another embed so we have the most charecters possible to work with for our titled sections
+        sectionEmbedFields = discord.Embed(
+            colour=discord.Colour.green(),
+            title="{} (SECTION) FIELDS".format(matchedObj["name"]),
+            description="**TYPE**\n{}".format(matchedObj["parent"])
+        )
+
+        # Append our titles and associated descriptions to a dictionary
+        sectionDict = {}
+
+        for entry in splitDesc:
+            
+            # We've hit a title!
+            if entry[0] == "#":
+
+                # TODO: Try deleting objects from array to save parsing?
+                # Add it to the dictionary and record where
+                sectionDict[entry] = ""
+                titleIndex = splitDesc.index(entry)
+
+                # Keep iterating until we hit the next title, adding the desc to our dictionary as we go
+                for line in splitDesc[titleIndex + 1]:
+                    if line[0] == "#": break
+                    else: sectionDict[entry] += line
+        
+        # Finally, we convert our dictionary to embed fields
+        for title, desc in sectionDict.items():
+
+            # Ensure the embed value is kept in check
+            if len(desc) >= 1024:
+                sectionEmbedFields.add_field(name=title, value=desc[:1023], inline=False)
+                sectionEmbedFields.add_field(name="{} continued...".format(title), value=desc[1024:2047], inline=False)
+
+            else: sectionEmbedFields.add_field(name=title, value=desc, inline=False)
+
+        responseEmbeds.append(sectionEmbedFields)
+
+        # Finish up
+        for embed in responseEmbeds: embed.set_thumbnail(url="https://i.imgur.com/J75S6bF.jpg")
 
     # Feat
 
@@ -547,7 +619,6 @@ def constructResponse(filteredInput, route, matchedObj):
             )
         )
         noRouteEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-        noRouteEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
         
         responseEmbeds.append(noRouteEmbed)
 
@@ -630,9 +701,11 @@ async def search(ctx, *args):
         responseEmbeds = constructResponse(filteredInput, match["route"], match["matchedObj"])
         for embed in responseEmbeds:
 
+            embed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
+
             # Note partial match in footer of embed
             if partialMatch == True: 
-                embed.set_footer(text="NOTE: Your search term ({}) was a PARTIAL match to this entity. If this isn't the entity you were expecting, try refining your search term or use ?searchdir instead".format(args))
+                embed.set_footer(text="NOTE: Your search term ({}) was a PARTIAL match to this entity.\nIf this isn't the entity you were expecting, try refining your search term or use ?searchdir instead".format(args))
             else:
                 embed.set_footer(text="NOTE: If this isn't the entity you were expecting, try refining your search term or use ?searchdir instead")
 
