@@ -519,7 +519,7 @@ def constructResponse(filteredInput, route, matchedObj):
     if route == "sections/":
         sectionEmbedDesc = discord.Embed(
             colour=discord.Colour.green(),
-            title="{} (SECTION)".format(matchedObj["name"]),
+            title="{} (SECTION): BASICS".format(matchedObj["name"]),
             description="**TYPE**\n{}".format(matchedObj["parent"])
         )
 
@@ -554,42 +554,51 @@ def constructResponse(filteredInput, route, matchedObj):
             del splitDesc[0]
             lineCount += 1
 
-        # Create another embed so we have the most charecters possible to work with for our titled sections
-        sectionEmbedFields = discord.Embed(
-            colour=discord.Colour.green(),
-            title="{} (SECTION) FIELDS".format(matchedObj["name"]),
-            description="**TYPE**\n{}".format(matchedObj["parent"])
-        )
-
         # Append our titles and associated descriptions to a dictionary
         sectionDict = {}
 
+        currentTitle = ""
         for entry in splitDesc:
-            
+
             # We've hit a title!
             if entry[0] == "#":
 
-                # TODO: Try deleting objects from array to save parsing?
-                # Add it to the dictionary and record where
-                sectionDict[entry] = ""
-                titleIndex = splitDesc.index(entry)
+                # Add to the dictionary and record where
+                currentTitle = entry
+                sectionDict[currentTitle] = ""
+
+                # titleIndex = splitDesc.index(entry)
 
                 # Keep iterating until we hit the next title, adding the desc to our dictionary as we go
-                for line in splitDesc[titleIndex + 1]:
-                    if line[0] == "#": break
-                    else: sectionDict[entry] += line
-        
-        # Finally, we convert our dictionary to embed fields
+                # for line in splitDesc[titleIndex + 1]:
+                #     if line[0] == "#": break
+                #     else: sectionDict[entry] += line
+
+            # Continue adding to description
+            else:
+                sectionDict[currentTitle] += "\n" + entry
+
+
+        # Finally, we convert our dictionary to embeds
         for title, desc in sectionDict.items():
 
-            # Ensure the embed value is kept in check
-            if len(desc) >= 1024:
-                sectionEmbedFields.add_field(name=title, value=desc[:1023], inline=False)
-                sectionEmbedFields.add_field(name="{} continued...".format(title), value=desc[1024:2047], inline=False)
+            # Create a new embed so we have the most charecters possible to work with
+            if len(desc) >= 2048:
+                sectionEmbedBlock = discord.Embed(
+                    colour=discord.Colour.green(),
+                    title="{} (SECTION): {}".format(matchedObj["name"], title),
+                    description=desc[:2047]
+                )
+                sectionEmbedBlock.add_field(name="Description Continued", value=desc[2048:], inline=False)
 
-            else: sectionEmbedFields.add_field(name=title, value=desc, inline=False)
+            else:
+                sectionEmbedBlock = discord.Embed(
+                    colour=discord.Colour.green(),
+                    title="{} (SECTION): {}".format(matchedObj["name"], title),
+                    description=desc
+                )
 
-        responseEmbeds.append(sectionEmbedFields)
+            responseEmbeds.append(sectionEmbedBlock)
 
         # Finish up
         for embed in responseEmbeds: embed.set_thumbnail(url="https://i.imgur.com/J75S6bF.jpg")
@@ -709,7 +718,10 @@ async def search(ctx, *args):
             else:
                 embed.set_footer(text="NOTE: If this isn't the entity you were expecting, try refining your search term or use ?searchdir instead")
 
+            print("SENDING EMBED...")
             await ctx.send(embed=embed)
+
+    print("DONE!")
 
 ###
 # FUNC NAME: ?searchdir [RESOURCE] [ENTITY]
