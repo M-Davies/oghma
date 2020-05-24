@@ -29,37 +29,6 @@ handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(me
 logger.addHandler(handler)
 
 ###
-# FUNC NAME: on_ready
-# FUNC DESC: Tells you when bot is ready to accept commands
-# FUNC TYPE: Command
-###
-@bot.event
-async def on_ready():
-    print('Logged in as')
-    print(bot.user.name)
-    print(bot.user.id)
-    print('------')
-
-###
-# FUNC NAME: on_command_error
-# FUNC DESC: If an error is thrown this func is executed
-# FUNC TYPE: Event
-###
-# @bot.event
-# async def on_command_error(ctx, error):
-    
-#     raise Exception(error)
-
-###
-# FUNC NAME: ?ping
-# FUNC DESC: Pings the bot to check it is live
-# FUNC TYPE: Command
-###
-@bot.command(name='ping', help='Pings the bot.\nUsage: !ping')
-async def ping(ctx):
-    await ctx.send('Pong!')
-
-###
 # FUNC NAME: searchResponse
 # FUNC DESC: Searches the API response for the user input. Returns None if nothing was found
 # FUNC TYPE: Function
@@ -69,7 +38,7 @@ def searchResponse(responseResults, filteredInput):
     match = None
     for entity in responseResults:
 
-        # Strip whitespaces and lower case before checking if it's match
+        # Documents don't have a name attribute
         if "title" in entity:
 
             # Has to be in it's own "if" to avoid KeyErrors
@@ -96,7 +65,7 @@ def searchResponse(responseResults, filteredInput):
                 match = entity
                 break
 
-        else: raise Exception("Object does not have a 'name' or 'title' field\n**OBJECT**: {}".format(entity))
+        else: match = "UNKNOWN"
 
     return match
 
@@ -111,32 +80,52 @@ def requestAPI(query, filteredInput, wideSearch):
     request = requests.get(query)
 
     # Return code if not successfull
-    if request.status_code != 200: return request.status_code
+    if request.status_code != 200: return {"code": request.status_code, "query": query}
 
     # Iterate through the results
     output = searchResponse(request.json()["results"], filteredInput)
 
     if output == None: return output
 
+    elif output == "UNKNOWN": return "UNKNOWN"
+
     # Find resource object if coming from search endpoint
     elif wideSearch == True:
 
         # Request resource using the first word of the name to filter results
-        # NOTE: Documents are not supported for this as they are not in /search at the time of writing this
         route = output["route"]
-        resourceRequest = requests.get(
-            "https://api.open5e.com/{}?format=json&limit=10000&search={}"
-            .format(
-                route, 
-                output["name"].split()[0]
+
+        if "title" in output:
+            resourceRequest = requests.get(
+                "https://api.open5e.com/{}?format=json&limit=10000&search={}"
+                .format(
+                    route,
+                    output["title"].split()[0]
+                )
             )
-        )
+        else:
+            resourceRequest = requests.get(
+                "https://api.open5e.com/{}?format=json&limit=10000&search={}"
+                .format(
+                    route,
+                    output["name"].split()[0]
+                )
+            )
 
         # Return code if not successfull
-        if resourceRequest.status_code != 200: return resourceRequest.status_code
+        if resourceRequest.status_code != 200: 
+            return {
+                "code": resourceRequest.status_code,
+                "query": "https://api.open5e.com/{}?format=json&limit=10000&search={}".format(
+                    route,
+                    output["name"].split()[0]
+                )
+            }
 
         # Search response again for the actual object
         resourceOutput = searchResponse(resourceRequest.json()["results"], filteredInput)
+
+        if resourceOutput == "UNKNOWN": return "UNKNOWN"
 
         return {"route": route, "matchedObj": resourceOutput}
 
@@ -148,7 +137,7 @@ def requestAPI(query, filteredInput, wideSearch):
 # FUNC DESC: Constructs embed responses from the API object.
 # FUNC TYPE: Function
 ###
-def constructResponse(filteredInput, route, matchedObj):
+def constructResponse(args, route, matchedObj):
     responseEmbeds = []
 
     # Document
@@ -503,7 +492,7 @@ def constructResponse(filteredInput, route, matchedObj):
         responseEmbeds.append(backgroundEmbed)
 
     # Plane
-    if route == "plane/":
+    elif route == "planes/":
         planeEmbed = discord.Embed(
             colour=discord.Colour.green(),
             title="{} (PLANE)".format(matchedObj["name"]),
@@ -515,16 +504,13 @@ def constructResponse(filteredInput, route, matchedObj):
 
         responseEmbeds.append(planeEmbed)
 
-    # Section
-    if route == "sections/":
+    # Section (NOT SUPPORTED YET)
+    elif route == "sections/":
         sectionEmbedDesc = discord.Embed(
             colour=discord.Colour.green(),
             title="{} (SECTION): BASICS".format(matchedObj["name"]),
             description="**TYPE**\n{}".format(matchedObj["parent"])
         )
-
-        # Embed charecter limit is 6000. Accounting for title, type and author gives us around 5700 charecters to work with
-        # Embed Field names are also limited to 256 charecters and their values to 1024
 
         # Desc is organised into titles and descriptions, seperated by hashses. There is also a general description at start
         splitDesc = matchedObj["desc"].split("\n")
@@ -563,16 +549,9 @@ def constructResponse(filteredInput, route, matchedObj):
             # We've hit a title!
             if entry[0] == "#":
 
-                # Add to the dictionary and record where
+                # Add to the dictionary
                 currentTitle = entry
                 sectionDict[currentTitle] = ""
-
-                # titleIndex = splitDesc.index(entry)
-
-                # Keep iterating until we hit the next title, adding the desc to our dictionary as we go
-                # for line in splitDesc[titleIndex + 1]:
-                #     if line[0] == "#": break
-                #     else: sectionDict[entry] += line
 
             # Continue adding to description
             else:
@@ -604,16 +583,259 @@ def constructResponse(filteredInput, route, matchedObj):
         for embed in responseEmbeds: embed.set_thumbnail(url="https://i.imgur.com/J75S6bF.jpg")
 
     # Feat
+    elif route == "feats/":
+        featEmbed = discord.Embed(
+            colour=discord.Colour.green(),
+            title="{} (FEAT)".format(matchedObj["name"]),
+            description="PREREQUISITES: {}".format(matchedObj["prerequisite"])
+        )
+        featEmbed.add_field(name="DESCRIPTION", value=matchedObj["desc"], inline=False)
+        featEmbed.set_thumbnail(url="https://i.imgur.com/X1l7Aif.jpg")
+
+        responseEmbeds.append(featEmbed)
 
     # Condition
+    elif route == "conditions/":
+
+        if len(matchedObj["desc"]) > 2048:
+            conditionEmbed = discord.Embed(
+                colour=discord.Colour.green(),
+                title="{} (CONDITION)".format(matchedObj["name"]),
+                description=matchedObj["desc"][:2047]
+            )
+            conditionEmbed.add_field(name="DESCRIPTION continued...", value=matchedObj["desc"][2048:], inline=False)
+
+        else:
+            conditionEmbed = discord.Embed(
+                colour=discord.Colour.green(),
+                title="{} (CONDITION)".format(matchedObj["name"]),
+                description=matchedObj["desc"]
+            )
+        conditionEmbed.set_thumbnail(url="https://i.imgur.com/tOdL5n3.jpg")
+
+        responseEmbeds.append(conditionEmbed)
 
     # Race
+    elif route == "races/":
 
+        raceEmbed = discord.Embed(
+            colour=discord.Colour.green(),
+            title="{} (RACE)".format(matchedObj["name"]),
+            description=matchedObj["desc"]
+        )
+
+        # Asi Description
+        raceEmbed.add_field(name="BENEFITS", value=matchedObj["asi_desc"], inline=False)
+
+        # Age, Alignment, Size
+        raceEmbed.add_field(name="AGE", value=matchedObj["age"], inline=True)
+        raceEmbed.add_field(name="ALIGNMENT", value=matchedObj["alignment"], inline=True)
+        raceEmbed.add_field(name="SIZE", value=matchedObj["size"], inline=True)
+        
+        # Speed
+        for speedType, speed in matchedObj["speed"].items():
+            raceEmbed.add_field(name="SPEED ({})".format(speed), value=speedType, inline=False)
+
+        # Speed Description
+        raceEmbed.add_field(name="SPEED DESCRIPTION", value=matchedObj["speed_desc"], inline=False)
+
+        # Languages
+        raceEmbed.add_field(name="LANGUAGES", value=matchedObj["languages"], inline=True)
+
+        # Vision buffs
+        if matchedObj["vision"] != "":
+            raceEmbed.add_field(name="VISION", value=matchedObj["vision"], inline=True)
+
+        # Traits
+        if matchedObj["traits"] != "":
+
+            if len(matchedObj["traits"]) > 1024:
+                raceEmbed.add_field(name="TRAITS", value=matchedObj["traits"][:1023], inline=False)
+                raceEmbed.add_field(name="TRAITS continued...", value=matchedObj["traits"][1024:], inline=False)
+            else:
+                raceEmbed.add_field(name="TRAITS", value=matchedObj["traits"], inline=False)
+
+        raceEmbed.set_thumbnail(url="https://i.imgur.com/OUSzh8W.jpg")
+        responseEmbeds.append(raceEmbed)
+
+        # Start new embed for any subraces
+        if matchedObj["subraces"] != []:
+
+            for subrace in matchedObj["subraces"]:
+
+                subraceEmbed = discord.Embed(
+                    colour=discord.Colour.green(),
+                    title="{} (SUBRACE OF {})".format(subrace["name"], matchedObj["name"]),
+                    description=subrace["desc"]
+                )
+
+                # Subrace asi's
+                subraceEmbed.add_field(name="SUBRACE BENEFITS", value=subrace["asi_desc"], inline=False)
+
+                # Subrace traits
+                if subrace["traits"] != "":
+
+                    if len(subrace["traits"]) > 1024:
+                        subraceEmbed.add_field(name="TRAITS", value=subrace["traits"][:1023], inline=False)
+                        subraceEmbed.add_field(name="TRAITS continued...", value=subrace["traits"][1024:], inline=False)
+                    else:
+                        subraceEmbed.add_field(name="TRAITS", value=subrace["traits"], inline=False)
+
+                subraceEmbed.set_thumbnail(url="https://i.imgur.com/OUSzh8W.jpg")
+                responseEmbeds.append(subraceEmbed)
+    
     # Class
+    elif route == "classes/":
 
+        # 1st Embed (BASIC)
+        if len(matchedObj["desc"] > 2047):
+            classDescEmbed = discord.Embed(
+                colour=discord.Colour.green(),
+                title="{} (CLASS): Basics".format(matchedObj["name"]),
+                description=matchedObj["desc"][:2047]
+            )
+
+            classDescEmbed.add_field(name="DESCRIPTION Continued", value=matchedObj["desc"][2048:], inline=False)
+
+        else:
+            classDescEmbed = discord.Embed(
+                colour=discord.Colour.green(),
+                title="{} (CLASS)".format(matchedObj["name"]),
+                description=matchedObj["desc"][:2047]
+            )
+
+        responseEmbeds.append(classDescEmbed)
+
+        # 2nd Embed (TABLE)
+        if len(matchedObj["table"]) > 2047:
+            classTableEmbed = discord.Embed(
+                colour=discord.Colour.green(),
+                title="{} (CLASS): Table".format(matchedObj["name"]),
+                description=matchedObj["desc"][:2047]
+            )
+            classTableEmbed.add_field(name="TABLE CONTINUED", value=matchedObj["desc"][2048:], inline=False)
+        
+        else:
+            classTableEmbed = discord.Embed(
+                colour=discord.Colour.green(),
+                title="{} (CLASS): Table".format(matchedObj["name"]),
+                description=matchedObj["desc"]
+            )
+
+        responseEmbeds.append(classTableEmbed)
+
+
+        # 3rd Embed (DETAILS)
+        classDetailsEmbed = discord.Embed(
+            colour=discord.Colour.green(),
+            title="{} (CLASS): Details".format(matchedObj["name"]),
+            description="ARMOUR: {}\nWEAPONS: {}\nTOOLS: {}\nSAVE THROWS: {}\nSKILLS: {}".format(
+                matchedObj["prof_armor"],
+                matchedObj["prof_weapons"],
+                matchedObj["prof_tools"],
+                matchedObj["prof_saving_throws"],
+                matchedObj["prof_skills"]
+            )
+        )
+
+        # Profs
+        classDetailsEmbed.add_field(
+            name="Hit points",
+            value="Hit Dice: {} | HP at first level: {} | HP at other levels: {}".format(
+                matchedObj["hit_dice"],
+                matchedObj["hp_at_1st_level"],
+                matchedObj["hp_at_higher_levels"]
+            ),
+            inline=False
+        )
+
+        # Equipment
+        if len(matchedObj["equipment"]) > 1023:
+            classDetailsEmbed.add_field(name="EQUIPMENT", value=matchedObj["equipment"][:1023], inline=False)
+            classDetailsEmbed.add_field(name="EQUIPMENT continued", value=matchedObj["equipment"][1024:], inline=False)
+        else:
+            classDetailsEmbed.add_field(name="EQUIPMENT", value=matchedObj["equipment"], inline=False)
+        
+        # Spell casting
+        if matchedObj["spellcasting_ability"] != "":
+            classDetailsEmbed.add_field(name="CASTING ABILITY", value=matchedObj["spellcasting_ability"], inline=False)
+        
+        # Subtypes
+        if matchedObj["subtypes_name"] != "":
+            classDetailsEmbed.add_field(name="SUBTYPES", value=matchedObj["subtypes_name"], inline=False)
+
+        # 4th Embed (ARCHETYPES)
+        if matchedObj["archetypes"] != []:
+
+            for archtype in matchedObj["archetypes"]:
+
+                archTypeEmbed = None
+
+                if len(archtype["desc"]) > 2047:
+
+                    archTypeEmbed = discord.Embed(
+                        colour=discord.Colour.green(),
+                        title="{} (ARCHETYPES)".format(archtype["name"]),
+                        description=archtype["desc"][:2047]
+                    )
+                    archTypeEmbed.add_field(name="Description Continued", value=archtype["desc"][2048:], inline=False)
+
+                else:
+                    archTypeEmbed = discord.Embed(
+                        colour=discord.Colour.green(),
+                        title="{} (ARCHETYPES)".format(archtype["name"]),
+                        description=archtype["desc"]
+                    )
+
+                responseEmbeds.append(archTypeEmbed)
+
+        # Finish up
+        for embed in responseEmbeds: embed.set_thumbnail(url="https://i.imgur.com/Mjh6AAi.jpg")
+   
     # Magic Item
+    elif route == "magicitems/":
+        magicItemEmbed = discord.Embed(
+            colour=discord.Colour.green(),
+            title="{} (MAGIC ITEM)".format(matchedObj["name"]),
+            description=matchedObj["desc"]
+        )
+
+        magicItemEmbed.add_field(name="TYPE", value=matchedObj["type"], inline=True)
+        magicItemEmbed.add_field(name="RARITY", value=matchedObj["rarity"], inline=True)
+
+        if matchedObj["requires_attunement"] == "requires_attunement":
+            magicItemEmbed.add_field(name="ATTUNEMENT?", value="YES", inline=True)
+        else:
+            magicItemEmbed.add_field(name="ATTUNEMENT REQUIRED?", value="NO", inline=True)
+
+        magicItemEmbed.set_thumbnail(url="https://i.imgur.com/2wzBEjB.png")
+
+        responseEmbeds.append(magicItemEmbed)
 
     # Weapon
+    elif route == "weapons/":
+        weaponEmbed = discord.Embed(
+            colour=discord.Colour.green(),
+            title="{} (WEAPON)".format(matchedObj["name"]),
+            description="PROPERTIES: {}".format(
+                " | ".join(matchedObj["properties"]) if matchedObj["properties"] != [] else "None"
+            )
+        )
+        weaponEmbed.add_field(
+            name="DAMAGE",
+            value="{} ({})".format(
+                matchedObj["damage_dice"], matchedObj["damage_type"]
+            ),
+            inline=True
+        )
+
+        weaponEmbed.add_field(name="CATEGORY", value=matchedObj["category"], inline=True)
+        weaponEmbed.add_field(name="COST", value=matchedObj["cost"], inline=True)
+        weaponEmbed.add_field(name="WEIGHT", value=matchedObj["weight"], inline=True)
+
+        weaponEmbed.set_thumbnail(url="https://i.imgur.com/pXEe4L9.png")
+
+        responseEmbeds.append(weaponEmbed)
     
     else:
         # Don't add a footer to an error embed
@@ -623,8 +845,8 @@ def constructResponse(filteredInput, route, matchedObj):
         noRouteEmbed = discord.Embed(
             colour=discord.Colour.red(),
             title="The matched item's type (i.e. spell, monster, etc) was not recognised",
-            description="Please create an issue describing this failure and with the following values at https://github.com/M-Davies/oghma/issues\n**Input**: {}\n**Route**: {}\n**Troublesome Object**: {}".format(
-                filteredInput, route, matchedObj
+            description="Please create an issue describing this failure and with the following values at https://github.com/shadowedlucario/oghma/issues\n**Input**: {}\n**Route**: {}\n**Troublesome Object**: {}".format(
+                args, route, matchedObj
             )
         )
         noRouteEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
@@ -633,6 +855,66 @@ def constructResponse(filteredInput, route, matchedObj):
 
     return responseEmbeds
 
+
+###
+# FUNC NAME: codeError
+# FUNC DESC: Sends an embed informing the user that there has been an API request failure
+# FUNC TYPE: Error
+###
+def codeError(statusCode, query):
+    codeEmbed = discord.Embed(
+        colour=discord.Colour.red(),
+        title="ERROR - API Request FAILED. Status Code: **{}**".format(str(statusCode)), 
+        description="Query: {}".format(query)
+    )
+        
+    codeEmbed.add_field(
+        name="For more idea on what went wrong:",
+        value="See status codes at https://www.django-rest-framework.org/api-guide/status-codes/",
+        inline=False
+    )
+
+    codeEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
+    codeEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
+
+    return codeEmbed
+
+###
+# FUNC NAME: on_ready
+# FUNC DESC: Tells you when bot is ready to accept commands. Also cleans up temp files.
+# FUNC TYPE: Command
+###
+@bot.event
+async def on_ready():
+    print("Logged in as\n{}\n{}\n------".format(bot.user.name, bot.user.id))
+
+    # Cleanup from last run
+    print("Cleaning up old files...")
+
+    # TODO: Need to make this public to all functions
+    print("Trying to clean entities.txt")
+    if os.path.exists("entities.txt"):
+        os.remove("entities.txt")
+
+        if os.path.exists("entities.txt"):
+            print("ERROR: entities.txt could not be deleted")
+        else:
+            print("entities.txt successfully deleted!")
+    else:
+        print("entities.txt does not exist. Skipping...")
+    print("------")
+
+    # All done!
+    print("READY!")
+
+###
+# FUNC NAME: ?ping
+# FUNC DESC: Pings the bot to check it is live
+# FUNC TYPE: Command
+###
+@bot.command(name='ping', help='Pings the bot.\nUsage: !ping')
+async def ping(ctx):
+    await ctx.send('Pong!')
 
 ###
 # FUNC NAME: ?search [ENTITY]
@@ -652,17 +934,73 @@ async def search(ctx, *args):
     global partialMatch
     partialMatch = False
 
-    # Verify arg length
-    if len(args) > 100 or len(args) <= 0:
+    # Verify we have args
+    if len(args) <= 0:
+        usageEmbed = discord.Embed(
+            colour=discord.Colour.red(),
+            title="No arguments were given. Command requires at least one argument", 
+            description="USAGE: `?search [D&D OBJECT YOU WANT TO SEARCH FOR]`"
+        )
+
+        usageEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
+        usageEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
+
+        return await ctx.send(embed=usageEmbed)
+
+    # Verify arg length isn't over limits
+    if len(args) > 200:
         argumentsEmbed = discord.Embed(
             color=discord.Colour.red(),
-            title="Invalid arguments",
-            description="`?{}` requires at least one argument and cannot support more than 100\nUsage: `?search [D&D OBJECT YOU WANT TO SEARCH FOR]`"
+            title="Invalid argument length",
+            description="This command does not support more than 200 words in a single message. Try splitting up your query."
         )
         argumentsEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
         argumentsEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
 
         return await ctx.send(embed=argumentsEmbed)
+
+    # Send directory contents if no search term given
+    if len(args) == 1:
+
+        await ctx.send(embed=discord.Embed(
+            color=discord.Colour.blue(),
+            title="GETTING ALL SEARCHABLE ENTITIES IN SEARCH/ ENDPOINT...",
+            description="WARNING: This may take a while!"
+        ))
+
+        # Get objects from directory, store in txt file
+        directoryRequest = requests.get("https://api.open5e.com/search/?format=json&limit=10000")
+
+        if directoryRequest.status_code != 200: 
+            return await ctx.send(embed=codeError(
+                directoryRequest.status_code,
+                "https://api.open5e.com/search/?format=json&limit=10000"
+                )
+            )
+
+        entityFile = open("entities.txt", "a+")
+        for entity in directoryRequest.json()["results"]:
+            if "title" in entity.keys():
+                entityFile.write("{}\n".format(entity["title"]))
+            else:
+                entityFile.write("{}\n".format(entity["name"]))
+
+        entityFile.close()
+
+        # Send embed notifying start of the spam stream
+        detailsEmbed = discord.Embed(
+            colour=discord.Colour.orange(),
+            title="See `entities.txt` for all searchable entities in this endpoint", 
+            description="Due to discord charecter limits regarding embeds, the results below have to be sent in a file. Yes I know this is far from ideal but it's the best I can do!"
+        )
+
+        detailsEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
+        detailsEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
+
+        await ctx.send(embed=detailsEmbed)
+
+        # Send entites file
+        return await ctx.send(file=discord.File("entities.txt"))
 
     # Filter input to remove whitespaces and set lowercase
     filteredInput = "".join(args).lower()
@@ -670,34 +1008,36 @@ async def search(ctx, *args):
     # Search API
     await ctx.send(embed=discord.Embed(
         color=discord.Colour.blue(),
-        title="SEARCHING ALL ENDPOINTS FOR {} (filtered input)...".format(args),
+        title="SEARCHING ALL ENDPOINTS FOR {}...".format(args),
         description="WARNING: This may take a while!"
     ))
     
-    # Use first word to narrow search results down for quicker response
+    # Use first word to narrow search results down for quicker response on some directories
     match = requestAPI("https://api.open5e.com/search/?format=json&limit=10000&text={}".format(str(args[0])), filteredInput, True)
 
     # An API Request failed
-    if isinstance(match, int):
-        codeEmbed = discord.Embed(
+    if isinstance(match, dict) and "code" in match.keys():
+        return await ctx.send(embed=codeError(match["code"], match["query"]))
+
+    # Searching algorithm hit an invalid object
+    elif match == "UNKNOWN":
+        unknownMatchEmbed = discord.Embed(
             colour=discord.Colour.red(),
             title="ERROR", 
-            description="API Request FAILED. Status Code: **{}**".format(str(match))
+            description="I found an entity in the API database that doesn't contain a `name` or `docuement` attribute. Please report this to https://github.com/shadowedlucario/oghma/issues"
         )
-        
-        codeEmbed.add_field(name="For more idea on what went wrong:", value="See status codes at https://www.django-rest-framework.org/api-guide/status-codes/")
 
-        codeEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-        codeEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
+        unknownMatchEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
+        unknownMatchEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
 
-        return await ctx.send(embed=codeEmbed)
+        return await ctx.send(embed=unknownMatchEmbed)
 
     # No entity was found
     elif match == None:
         noMatchEmbed = discord.Embed(
             colour=discord.Colour.orange(),
             title="ERROR", 
-            description="No matches found for **{}** in the search endpoint".format(filteredInput.upper())
+            description="No matches found for **{}** in the search endpoint".format(filteredInput)
         )
 
         noMatchEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
@@ -707,7 +1047,7 @@ async def search(ctx, *args):
 
     # Otherwise, construct & send response embeds
     else:
-        responseEmbeds = constructResponse(filteredInput, match["route"], match["matchedObj"])
+        responseEmbeds = constructResponse(args, match["route"], match["matchedObj"])
         for embed in responseEmbeds:
 
             embed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
@@ -726,12 +1066,204 @@ async def search(ctx, *args):
 ###
 # FUNC NAME: ?searchdir [RESOURCE] [ENTITY]
 # FUNC DESC: Queries the Open5e RESOURCE API.
-# ENDPOINT:  Resource/endpoint name (i.e. spells, monsters, etc.).
+# RESOURCE:  Resource name (i.e. spells, monsters, etc.).
 # ENTITY: The DND entity you wish to get infomation on.
 # FUNC TYPE: Command
 ###
-@bot.command(name='searchdir', help='Queries the Open5e API to get the entities infomation from the specified resource.\nUsage: ?searchdir [RESOURCE] [ENTITY]')
+@bot.command(
+    pass_context=True,
+    name='searchdir',
+    help='Queries the Open5e API to get the entities infomation from the specified resource.\nUsage: ?searchdir [RESOURCE] [ENTITY]',
+    usage='?search [RESOURCE] [ENTITY]'
+)
 async def searchdir(ctx, *args):
-    print("no")
+
+    # Import & reset globals
+    global partialMatch
+    partialMatch = False
+
+    # Verify we have arguments
+    if len(args) <= 0:
+        usageEmbed = discord.Embed(
+            colour=discord.Colour.red(),
+            title="No arguments were given. Command requires at least one argument", 
+            description="USAGE: `?searchdir [DIRECTORY] [D&D OBJECT YOU WANT TO SEARCH FOR]`"
+        )
+
+        usageEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
+        usageEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
+
+        return await ctx.send(embed=usageEmbed)
+
+    # Filter the dictionary input
+    # TODO: This is bugged. Seems to save the variable between commands.
+    filteredDictionary = args[0].lower() + "/"
+
+    # Filter input to remove whitespaces and set lowercase
+    filteredInput = "".join(args[1:]).lower()
+
+    # Get API Root
+    rootRequest = requests.get("https://api.open5e.com?format=json")
+
+    # Throw if Root request wasn't successfull
+    if rootRequest.status_code != 200: 
+        return await ctx.send(embed=codeError(rootRequest.status_code, "https://api.open5e.com?format=json"))
+
+    # Verify arg length isn't over limits
+    if len(args) > 200:
+        argumentsEmbed = discord.Embed(
+            color=discord.Colour.red(),
+            title="Invalid argument length",
+            description="This command does not support more than 200 words in a single message. Try splitting up your query."
+        )
+        argumentsEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
+        argumentsEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
+
+        return await ctx.send(embed=argumentsEmbed)
+
+    # Send directory contents if no search term given
+    if len(args) == 1:
+
+        await ctx.send(embed=discord.Embed(
+            color=discord.Colour.blue(),
+            title="GETTING ALL SEARCHABLE ENTITIES IN {} ENDPOINT...".format(filteredDictionary.upper()),
+            description="WARNING: This may take a while!"
+        ))
+
+        # Get objects from directory, store in txt file
+        directoryRequest = requests.get("https://api.open5e.com/{}?format=json&limit=10000".format(filteredDictionary))
+
+        if directoryRequest.status_code != 200: 
+            return await ctx.send(embed=codeError(
+                directoryRequest.status_code,
+                "https://api.open5e.com/{}?format=json&limit=10000".format(filteredDictionary)
+                )
+            )
+
+        entityFile = open("entities.txt", "a+")
+        for entity in directoryRequest.json()["results"]:
+            if "title" in entity.keys():
+                entityFile.write("{}\n".format(entity["title"]))
+            else:
+                entityFile.write("{}\n".format(entity["name"]))
+
+        entityFile.close()
+
+        # Send embed notifying start of the spam stream
+        detailsEmbed = discord.Embed(
+            colour=discord.Colour.orange(),
+            title="See `entities.txt` for all searchable entities in this endpoint", 
+            description="Due to discord charecter limits regarding embeds, the results below have to be sent in a file. Yes I know this is far from ideal but it's the best I can do!"
+        )
+
+        detailsEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
+        detailsEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
+        if "search" in filteredDictionary:
+            detailsEmbed.set_footer(text="NOTE: The `search` endpoint is not searchable with `?searchdir`. Use `?search` instead for this.")
+
+        await ctx.send(embed=detailsEmbed)
+
+        # Send entites file
+        return await ctx.send(file=discord.File("entities.txt"))
+
+    # search/ endpoint is best used with the dedicated ?search command
+    if "search" in filteredDictionary:
+        
+        # Remove search endpoint from list
+        directories = list(rootRequest.json().keys())
+        directories.remove("search")
+
+        searchEmbed = discord.Embed(
+            colour=discord.Colour.orange(),
+            title="Requested Directory (`{}`) is not a valid directory name".format(str(args[0])), 
+            description="**Available Directories**\n{}".format(", ".join(directories))
+        )
+
+        searchEmbed.add_field(name="NOTE", value="Use `?search` for searching the `search/` directory. This has been done to cut down on parsing errors.")
+        searchEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
+        searchEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
+
+        return await ctx.send(embed=searchEmbed)
+
+    # Verify resource exists
+    if args[0] not in rootRequest.json().keys():
+
+        # Remove search endpoint from list
+        directories = list(rootRequest.json().keys())
+        directories.remove("search")
+
+        noResourceEmbed = discord.Embed(
+            colour=discord.Colour.orange(),
+            title="Requested Directory (`{}`) is not a valid directory name".format(str(args[0])), 
+            description="**Available Directories**\n{}".format(", ".join(directories))
+        )
+
+        noResourceEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
+        noResourceEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
+
+        return await ctx.send(embed=noResourceEmbed)
+
+    # Search API
+    await ctx.send(embed=discord.Embed(
+        color=discord.Colour.blue(),
+        title="SEARCHING {} ENDPOINT FOR {}...".format(filteredDictionary.upper(), args),
+        description="WARNING: This may take a while!"
+    ))
+    
+    # Use first word to narrow search results down for quicker response on some directories
+    match = requestAPI(
+        "https://api.open5e.com/{}?format=json&limit=10000&text={}".format(
+            filteredDictionary,
+            str(args[1])
+        ),
+        filteredInput,
+        False
+    )
+
+    # An API Request failed
+    if isinstance(match, dict) and "code" in match.keys():
+        return await ctx.send(embed=codeError(match.code, match.query))
+
+    # Searching algorithm hit an invalid object
+    elif match == "UNKNOWN":
+        unknownMatchEmbed = discord.Embed(
+            colour=discord.Colour.red(),
+            title="ERROR", 
+            description="I found an entity in the API database that doesn't contain a `name` or `docuement` attribute. Please report this to https://github.com/shadowedlucario/oghma/issues"
+        )
+
+        unknownMatchEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
+        unknownMatchEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
+
+        return await ctx.send(embed=unknownMatchEmbed)
+
+    # No entity was found
+    elif match == None:
+        noMatchEmbed = discord.Embed(
+            colour=discord.Colour.orange(),
+            title="ERROR", 
+            description="No matches found for **{}** in the {} endpoint".format(filteredInput.upper(), filteredDictionary)
+        )
+
+        noMatchEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
+        noMatchEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
+
+        return await ctx.send(embed=noMatchEmbed)
+
+    # Otherwise, construct & send response embeds
+    else:
+        responseEmbeds = constructResponse(args, filteredDictionary, match)
+        for embed in responseEmbeds:
+
+            embed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
+
+            # Note partial match in footer of embed
+            if partialMatch == True: 
+                embed.set_footer(text="NOTE: Your search term ({}) was a PARTIAL match to this entity.\nIf this isn't the entity you were expecting, try refining your search term or use ?searchdir instead".format(args))
+
+            print("SENDING EMBED...")
+            await ctx.send(embed=embed)
+
+    print("DONE!")
 
 bot.run(TOKEN)
