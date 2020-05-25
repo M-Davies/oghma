@@ -149,7 +149,7 @@ def constructResponse(args, route, matchedObj):
     responses = []
 
     # Document
-    if route == "documents/":
+    if "document" in route:
         documentEmbed = None
 
         # Description charecter length for embeds is 2048, titles is 256
@@ -176,7 +176,7 @@ def constructResponse(args, route, matchedObj):
         responses.append(documentEmbed)
 
     # Spell
-    elif route == "spells/":
+    elif "spell" in route:
         spellEmbed = None
 
         if len(matchedObj["desc"]) >= 2048:
@@ -212,7 +212,7 @@ def constructResponse(args, route, matchedObj):
         responses.append(spellEmbed)
 
     # Monster
-    elif route == "monsters/":
+    elif "monster" in route:
         ## 1ST EMBED ##
         monsterEmbedBasics = discord.Embed(
             colour=discord.Colour.green(),
@@ -458,7 +458,7 @@ def constructResponse(args, route, matchedObj):
             else: embed.set_thumbnail(url="https://i.imgur.com/6HsoQ7H.jpg")
 
     # Background
-    elif route == "backgrounds/":
+    elif "background" in route:
 
         # 1st Embed (Basics)
         backgroundEmbed = discord.Embed(
@@ -545,7 +545,7 @@ def constructResponse(args, route, matchedObj):
                 response.set_thumbnail(url="https://i.imgur.com/GhGODan.jpg")
 
     # Plane
-    elif route == "planes/":
+    elif "plane" in route:
         planeEmbed = discord.Embed(
             colour=discord.Colour.green(),
             title="{} (PLANE)".format(matchedObj["name"]),
@@ -558,7 +558,7 @@ def constructResponse(args, route, matchedObj):
         responses.append(planeEmbed)
 
     # Section (NOT SUPPORTED YET)
-    elif route == "sections/":
+    elif "section" in route:
 
         sectionEmbedDesc = discord.Embed(
             colour=discord.Colour.red(),
@@ -645,7 +645,7 @@ def constructResponse(args, route, matchedObj):
         # for embed in responses: embed.set_thumbnail(url="https://i.imgur.com/J75S6bF.jpg")
 
     # Feat
-    elif route == "feats/":
+    elif "feat" in route:
         featEmbed = discord.Embed(
             colour=discord.Colour.green(),
             title="{} (FEAT)".format(matchedObj["name"]),
@@ -657,7 +657,7 @@ def constructResponse(args, route, matchedObj):
         responses.append(featEmbed)
 
     # Condition
-    elif route == "conditions/":
+    elif "condition" in route:
 
         if len(matchedObj["desc"]) > 2048:
             conditionEmbed = discord.Embed(
@@ -678,7 +678,7 @@ def constructResponse(args, route, matchedObj):
         responses.append(conditionEmbed)
 
     # Race
-    elif route == "races/":
+    elif "race" in route:
 
         raceEmbed = discord.Embed(
             colour=discord.Colour.green(),
@@ -743,7 +743,7 @@ def constructResponse(args, route, matchedObj):
                 responses.append(subraceEmbed)
     
     # Class
-    elif route == "classes/":
+    elif "classe" in route:
 
         # 1st Embed & File (BASIC)
         if len(matchedObj["desc"]) < 2047:
@@ -885,7 +885,7 @@ def constructResponse(args, route, matchedObj):
                 response.set_thumbnail(url="https://i.imgur.com/Mjh6AAi.jpg")
    
     # Magic Item
-    elif route == "magicitems/":
+    elif "magicitem" in route:
 
         if len(matchedObj["desc"]) > 2047:
             magicItemEmbed = discord.Embed(
@@ -928,7 +928,7 @@ def constructResponse(args, route, matchedObj):
         responses.append(magicItemEmbed)
 
     # Weapon
-    elif route == "weapons/":
+    elif "weapon" in route:
         weaponEmbed = discord.Embed(
             colour=discord.Colour.green(),
             title="{} (WEAPON)".format(matchedObj["name"]),
@@ -944,10 +944,10 @@ def constructResponse(args, route, matchedObj):
             inline=True
         )
 
-        weaponEmbed.add_field(name="CATEGORY", value=matchedObj["category"], inline=True)
-        weaponEmbed.add_field(name="COST", value=matchedObj["cost"], inline=True)
         weaponEmbed.add_field(name="WEIGHT", value=matchedObj["weight"], inline=True)
-
+        weaponEmbed.add_field(name="COST", value=matchedObj["cost"], inline=True)
+        weaponEmbed.add_field(name="CATEGORY", value=matchedObj["category"], inline=False)
+        
         weaponEmbed.set_thumbnail(url="https://i.imgur.com/pXEe4L9.png")
 
         responses.append(weaponEmbed)
@@ -957,16 +957,23 @@ def constructResponse(args, route, matchedObj):
         global partialMatch
         partialMatch = False
 
+        badObjectFilename = generateFileName("bad-object")
+
+        itemFile = open(badObjectFilename, "a+")
+        itemFile.write(matchedObj)
+        itemFile.close()
+
         noRouteEmbed = discord.Embed(
             colour=discord.Colour.red(),
             title="The matched item's type (i.e. spell, monster, etc) was not recognised",
-            description="Please create an issue describing this failure and with the following values at https://github.com/shadowedlucario/oghma/issues\n**Input**: {}\n**Route**: {}\n**Troublesome Object**: {}".format(
-                args, route, matchedObj
+            description="Please create an issue describing this failure and with the following values at https://github.com/shadowedlucario/oghma/issues\n**Input**: {}\n**Route**: {}\n**Troublesome Object**: SEE `{}`".format(
+                args, route, badObjectFilename
             )
         )
         noRouteEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
         
         responses.append(noRouteEmbed)
+        responses.append(badObjectFilename)
 
     return responses
 
