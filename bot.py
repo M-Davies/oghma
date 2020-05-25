@@ -4,6 +4,8 @@
 # https://github.com/shadowedlucario
 ###
 
+# TODO: Change file names to be unique each time
+
 import os
 import requests
 import json
@@ -741,49 +743,61 @@ def constructResponse(args, route, matchedObj):
     # Class
     elif route == "classes/":
 
-        # 1st Embed (BASIC)
-        if len(matchedObj["desc"] > 2047):
+        # 1st Embed & File (BASIC)
+        if len(matchedObj["desc"]) < 2047:
+            classDescEmbed = discord.Embed(
+                colour=discord.Colour.green(),
+                title="{} (CLASS)".format(matchedObj["name"]),
+                description=matchedObj["desc"]
+            )
+
+            # Spell casting
+            if matchedObj["spellcasting_ability"] != "":
+                classDescEmbed.add_field(name="CASTING ABILITY", value=matchedObj["spellcasting_ability"], inline=False)
+
+            responses.append(classDescEmbed)
+
+        else:
             classDescEmbed = discord.Embed(
                 colour=discord.Colour.green(),
                 title="{} (CLASS): Basics".format(matchedObj["name"]),
                 description=matchedObj["desc"][:2047]
             )
 
-            classDescEmbed.add_field(name="DESCRIPTION Continued", value=matchedObj["desc"][2048:], inline=False)
+            # Spell casting
+            if matchedObj["spellcasting_ability"] != "":
+                classDescEmbed.add_field(name="CASTING ABILITY", value=matchedObj["spellcasting_ability"], inline=False)
 
-        else:
-            classDescEmbed = discord.Embed(
-                colour=discord.Colour.green(),
-                title="{} (CLASS)".format(matchedObj["name"]),
-                description=matchedObj["desc"][:2047]
-            )
+            classDescEmbed.add_field(name="LENGTH OF DESCRIPTION TOO LONG FOR DISCORD", value="See `description.txt` for full description", inline=False)
 
-        responses.append(classDescEmbed)
+            responses.append(classDescEmbed)
 
-        # 2nd Embed (TABLE)
-        if len(matchedObj["table"]) > 2047:
-            classTableEmbed = discord.Embed(
-                colour=discord.Colour.green(),
-                title="{} (CLASS): Table".format(matchedObj["name"]),
-                description=matchedObj["desc"][:2047]
-            )
-            classTableEmbed.add_field(name="TABLE CONTINUED", value=matchedObj["desc"][2048:], inline=False)
-        
-        else:
-            classTableEmbed = discord.Embed(
-                colour=discord.Colour.green(),
-                title="{} (CLASS): Table".format(matchedObj["name"]),
-                description=matchedObj["desc"]
-            )
+            descFile = open("description.txt", "a+")
+            descFile.write(matchedObj["desc"])
+            descFile.close()
+
+            responses.append("description.txt")
+
+        # 2nd Embed & File (TABLE)
+        classTableEmbed = discord.Embed(
+            colour=discord.Colour.green(),
+            title="{} (CLASS): TABLE".format(matchedObj["name"]),
+            description="See `table.txt` for the full table"
+        )
 
         responses.append(classTableEmbed)
 
+        tableFile = open("table.txt", "a+")
+        tableFile.write(matchedObj["table"])
+        tableFile.close()
+
+        responses.append("table.txt")
 
         # 3rd Embed (DETAILS)
         classDetailsEmbed = discord.Embed(
             colour=discord.Colour.green(),
-            title="{} (CLASS): Details".format(matchedObj["name"]),
-            description="ARMOUR: {}\nWEAPONS: {}\nTOOLS: {}\nSAVE THROWS: {}\nSKILLS: {}".format(
+            title="{} (CLASS): Profs & Details".format(matchedObj["name"]),
+            description="**ARMOUR**: {}\n**WEAPONS**: {}\n**TOOLS**: {}\n**SAVE THROWS**: {}\n**SKILLS**: {}".format(
                 matchedObj["prof_armor"],
                 matchedObj["prof_weapons"],
                 matchedObj["prof_tools"],
@@ -792,10 +806,9 @@ def constructResponse(args, route, matchedObj):
             )
         )
 
-        # Profs
         classDetailsEmbed.add_field(
             name="Hit points",
-            value="Hit Dice: {} | HP at first level: {} | HP at other levels: {}".format(
+            value="**Hit Dice**: {}\n**HP at first level**: {}\n**HP at other levels**: {}".format(
                 matchedObj["hit_dice"],
                 matchedObj["hp_at_1st_level"],
                 matchedObj["hp_at_higher_levels"]
@@ -809,14 +822,8 @@ def constructResponse(args, route, matchedObj):
             classDetailsEmbed.add_field(name="EQUIPMENT continued", value=matchedObj["equipment"][1024:], inline=False)
         else:
             classDetailsEmbed.add_field(name="EQUIPMENT", value=matchedObj["equipment"], inline=False)
-        
-        # Spell casting
-        if matchedObj["spellcasting_ability"] != "":
-            classDetailsEmbed.add_field(name="CASTING ABILITY", value=matchedObj["spellcasting_ability"], inline=False)
-        
-        # Subtypes
-        if matchedObj["subtypes_name"] != "":
-            classDetailsEmbed.add_field(name="SUBTYPES", value=matchedObj["subtypes_name"], inline=False)
+
+        responses.append(classDetailsEmbed)
 
         # 4th Embed (ARCHETYPES)
         if matchedObj["archetypes"] != []:
@@ -825,26 +832,45 @@ def constructResponse(args, route, matchedObj):
 
                 archTypeEmbed = None
 
-                if len(archtype["desc"]) > 2047:
+                if len(archtype["desc"]) < 2047:
 
-                    archTypeEmbed = discord.Embed(
-                        colour=discord.Colour.green(),
-                        title="{} (ARCHETYPES)".format(archtype["name"]),
-                        description=archtype["desc"][:2047]
-                    )
-                    archTypeEmbed.add_field(name="Description Continued", value=archtype["desc"][2048:], inline=False)
-
-                else:
                     archTypeEmbed = discord.Embed(
                         colour=discord.Colour.green(),
                         title="{} (ARCHETYPES)".format(archtype["name"]),
                         description=archtype["desc"]
                     )
 
-                responses.append(archTypeEmbed)
+                    responses.append(archTypeEmbed)
+
+                else:
+
+                    archTypeEmbed = discord.Embed(
+                        colour=discord.Colour.green(),
+                        title="{} (ARCHETYPES)\n{} (SUBTYPE)".format(
+                            archtype["name"],
+                            matchedObj["subtypes_name"] if matchedObj["subtypes_name"] != "" else "None"
+                        ),
+                        description=archtype["desc"][:2047]
+                    )
+
+                    archTypeEmbed.add_field(
+                        name="LENGTH OF DESCRIPTION TOO LONG FOR DISCORD",
+                        value="See `archDescription.txt` for full description",
+                        inline=False
+                    )
+
+                    responses.append(archTypeEmbed)
+
+                    archDesFile = open("archDescription.txt", "a+")
+                    archDesFile.write(archtype["desc"])
+                    archDesFile.close()
+
+                    responses.append("archDescription.txt")
 
         # Finish up
-        for embed in responses: embed.set_thumbnail(url="https://i.imgur.com/Mjh6AAi.jpg")
+        for response in responses: 
+            if isinstance(response, discord.Embed):
+                response.set_thumbnail(url="https://i.imgur.com/Mjh6AAi.jpg")
    
     # Magic Item
     elif route == "magicitems/":
