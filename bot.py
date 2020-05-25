@@ -689,13 +689,9 @@ def constructResponse(args, route, matchedObj):
         raceEmbed.add_field(name="AGE", value=matchedObj["age"], inline=True)
         raceEmbed.add_field(name="ALIGNMENT", value=matchedObj["alignment"], inline=True)
         raceEmbed.add_field(name="SIZE", value=matchedObj["size"], inline=True)
-        
-        # Speed
-        for speedType, speed in matchedObj["speed"].items():
-            raceEmbed.add_field(name="SPEED ({})".format(speed), value=speedType, inline=False)
 
         # Speed Description
-        raceEmbed.add_field(name="SPEED DESCRIPTION", value=matchedObj["speed_desc"], inline=False)
+        raceEmbed.add_field(name="SPEEDS", value=matchedObj["speed_desc"], inline=False)
 
         # Languages
         raceEmbed.add_field(name="LANGUAGES", value=matchedObj["languages"], inline=True)
