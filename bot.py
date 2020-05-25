@@ -555,81 +555,90 @@ def constructResponse(args, route, matchedObj):
 
     # Section (NOT SUPPORTED YET)
     elif route == "sections/":
+
         sectionEmbedDesc = discord.Embed(
-            colour=discord.Colour.green(),
-            title="{} (SECTION): BASICS".format(matchedObj["name"]),
-            description="**TYPE**\n{}".format(matchedObj["parent"])
+            colour=discord.Colour.red(),
+            title="NOT SUPPORTED!",
+            description="`sections/` is not currently supported for Oghma."
         )
-
-        # Desc is organised into titles and descriptions, seperated by hashses. There is also a general description at start
-        splitDesc = matchedObj["desc"].split("\n")
-
-        # Remove empty strings from array. Can't use filter since we need to work with index() later on.
-        for entry in splitDesc: 
-            if entry == "": splitDesc.remove(entry)
-
-        # Find the general description
-        firstTitleIndex = 0
-        generalDescription = ""
-
-        for line in splitDesc:
-
-            # If we hit a title, stop and record where. Otherwise, add to our general description
-            if line[0] == "#":
-                firstTitleIndex = splitDesc.index(line)
-                break
-            else: generalDescription += " " + line
-
-        sectionEmbedDesc.add_field(name="DESCRIPTON", value=generalDescription, inline=False)
+        sectionEmbedDesc.set_thumbnail(url="https://i.imgur.com/J75S6bF.jpg")
         responses.append(sectionEmbedDesc)
+        
+        # sectionEmbedDesc = discord.Embed(
+        #     colour=discord.Colour.green(),
+        #     title="{} (SECTION): BASICS".format(matchedObj["name"]),
+        #     description="**TYPE**\n{}".format(matchedObj["parent"])
+        # )
 
-        # Remove general description from the list to help parse the rest of it
-        lineCount = 0
-        while lineCount < firstTitleIndex:
-            del splitDesc[0]
-            lineCount += 1
+        # # Desc is organised into titles and descriptions, seperated by hashses. There is also a general description at start
+        # splitDesc = matchedObj["desc"].split("\n")
 
-        # Append our titles and associated descriptions to a dictionary
-        sectionDict = {}
+        # # Remove empty strings from array. Can't use filter since we need to work with index() later on.
+        # for entry in splitDesc: 
+        #     if entry == "": splitDesc.remove(entry)
 
-        currentTitle = ""
-        for entry in splitDesc:
+        # # Find the general description
+        # firstTitleIndex = 0
+        # generalDescription = ""
 
-            # We've hit a title!
-            if entry[0] == "#":
+        # for line in splitDesc:
 
-                # Add to the dictionary
-                currentTitle = entry
-                sectionDict[currentTitle] = ""
+        #     # If we hit a title, stop and record where. Otherwise, add to our general description
+        #     if line[0] == "#":
+        #         firstTitleIndex = splitDesc.index(line)
+        #         break
+        #     else: generalDescription += " " + line
 
-            # Continue adding to description
-            else:
-                sectionDict[currentTitle] += "\n" + entry
+        # sectionEmbedDesc.add_field(name="DESCRIPTON", value=generalDescription, inline=False)
+        # responses.append(sectionEmbedDesc)
+
+        # # Remove general description from the list to help parse the rest of it
+        # lineCount = 0
+        # while lineCount < firstTitleIndex:
+        #     del splitDesc[0]
+        #     lineCount += 1
+
+        # # Append our titles and associated descriptions to a dictionary
+        # sectionDict = {}
+
+        # currentTitle = ""
+        # for entry in splitDesc:
+
+        #     # We've hit a title!
+        #     if entry[0] == "#":
+
+        #         # Add to the dictionary
+        #         currentTitle = entry
+        #         sectionDict[currentTitle] = ""
+
+        #     # Continue adding to description
+        #     else:
+        #         sectionDict[currentTitle] += "\n" + entry
 
 
-        # Finally, we convert our dictionary to embeds
-        for title, desc in sectionDict.items():
+        # # Finally, we convert our dictionary to embeds
+        # for title, desc in sectionDict.items():
 
-            # Create a new embed so we have the most charecters possible to work with
-            if len(desc) >= 2048:
-                sectionEmbedBlock = discord.Embed(
-                    colour=discord.Colour.green(),
-                    title="{} (SECTION): {}".format(matchedObj["name"], title),
-                    description=desc[:2047]
-                )
-                sectionEmbedBlock.add_field(name="Description Continued", value=desc[2048:], inline=False)
+        #     # Create a new embed so we have the most charecters possible to work with
+        #     if len(desc) >= 2048:
+        #         sectionEmbedBlock = discord.Embed(
+        #             colour=discord.Colour.green(),
+        #             title="{} (SECTION): {}".format(matchedObj["name"], title),
+        #             description=desc[:2047]
+        #         )
+        #         sectionEmbedBlock.add_field(name="Description Continued", value=desc[2048:], inline=False)
 
-            else:
-                sectionEmbedBlock = discord.Embed(
-                    colour=discord.Colour.green(),
-                    title="{} (SECTION): {}".format(matchedObj["name"], title),
-                    description=desc
-                )
+        #     else:
+        #         sectionEmbedBlock = discord.Embed(
+        #             colour=discord.Colour.green(),
+        #             title="{} (SECTION): {}".format(matchedObj["name"], title),
+        #             description=desc
+        #         )
 
-            responses.append(sectionEmbedBlock)
+        #     responses.append(sectionEmbedBlock)
 
-        # Finish up
-        for embed in responses: embed.set_thumbnail(url="https://i.imgur.com/J75S6bF.jpg")
+        # # Finish up
+        # for embed in responses: embed.set_thumbnail(url="https://i.imgur.com/J75S6bF.jpg")
 
     # Feat
     elif route == "feats/":
