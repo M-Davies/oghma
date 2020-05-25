@@ -4,11 +4,10 @@
 # https://github.com/shadowedlucario
 ###
 
-# TODO: Change file names to be unique each time
-
 import os
 import requests
 import json
+import random
 import discord
 import logging
 from discord.ext import commands
@@ -523,20 +522,23 @@ def constructResponse(args, route, matchedObj):
                     title="{} (BACKGROUND): CHARECTERISTICS".format(matchedObj["name"]),
                     description=matchedObj["suggested_characteristics"][:2047]
                 )
+
+                bckFileName = generateFileName("background")
+
                 backgroundChars.add_field(
                     name="LENGTH OF CHARECTERISTICS TOO LONG FOR DISCORD",
-                    value="See `characteristics.txt` for full description",
+                    value="See `{}` for full description".format(bckFileName),
                     inline=False
                 )
 
                 responses.append(backgroundChars)
 
                 # Create characteristics.txt
-                characteristicsFile = open("characteristics.txt", "a+")
+                characteristicsFile = open(bckFileName, "a+")
                 characteristicsFile.write(matchedObj["suggested_characteristics"])
                 characteristicsFile.close()
 
-                responses.append("characteristics.txt")
+                responses.append(bckFileName)
 
         for response in responses: 
             if isinstance(response, discord.Embed):
@@ -768,30 +770,38 @@ def constructResponse(args, route, matchedObj):
             if matchedObj["spellcasting_ability"] != "":
                 classDescEmbed.add_field(name="CASTING ABILITY", value=matchedObj["spellcasting_ability"], inline=False)
 
-            classDescEmbed.add_field(name="LENGTH OF DESCRIPTION TOO LONG FOR DISCORD", value="See `description.txt` for full description", inline=False)
+            clsDesFileName = generateFileName("class-description")
+
+            classDescEmbed.add_field(
+                name="LENGTH OF DESCRIPTION TOO LONG FOR DISCORD",
+                value="See `{}` for full description".format(clsDesFileName),
+                inline=False
+            )
 
             responses.append(classDescEmbed)
 
-            descFile = open("description.txt", "a+")
+            descFile = open(clsDesFileName, "a+")
             descFile.write(matchedObj["desc"])
             descFile.close()
 
-            responses.append("description.txt")
+            responses.append(clsDesFileName)
 
         # 2nd Embed & File (TABLE)
+        clsTblFileName = generateFileName("class-table")
+
         classTableEmbed = discord.Embed(
             colour=discord.Colour.green(),
             title="{} (CLASS): TABLE".format(matchedObj["name"]),
-            description="See `table.txt` for the full table"
+            description="See `{}` for the full table".format(clsTblFileName)
         )
 
         responses.append(classTableEmbed)
 
-        tableFile = open("table.txt", "a+")
+        tableFile = open(clsTblFileName, "a+")
         tableFile.write(matchedObj["table"])
         tableFile.close()
 
-        responses.append("table.txt")
+        responses.append(clsTblFileName)
 
         # 3rd Embed (DETAILS)
         classDetailsEmbed = discord.Embed(
@@ -853,19 +863,21 @@ def constructResponse(args, route, matchedObj):
                         description=archtype["desc"][:2047]
                     )
 
+                    clsArchFileName = generateFileName("class-archetype")
+
                     archTypeEmbed.add_field(
                         name="LENGTH OF DESCRIPTION TOO LONG FOR DISCORD",
-                        value="See `archDescription.txt` for full description",
+                        value="See `{}` for full description".format(clsArchFileName),
                         inline=False
                     )
 
                     responses.append(archTypeEmbed)
 
-                    archDesFile = open("archDescription.txt", "a+")
+                    archDesFile = open(clsArchFileName, "a+")
                     archDesFile.write(archtype["desc"])
                     archDesFile.close()
 
-                    responses.append("archDescription.txt")
+                    responses.append(clsArchFileName)
 
         # Finish up
         for response in responses: 
@@ -874,17 +886,40 @@ def constructResponse(args, route, matchedObj):
    
     # Magic Item
     elif route == "magicitems/":
-        magicItemEmbed = discord.Embed(
-            colour=discord.Colour.green(),
-            title="{} (MAGIC ITEM)".format(matchedObj["name"]),
-            description=matchedObj["desc"]
-        )
 
+        if len(matchedObj["desc"]) > 2047:
+            magicItemEmbed = discord.Embed(
+                colour=discord.Colour.green(),
+                title="{} (MAGIC ITEM)".format(matchedObj["name"]),
+                description=matchedObj["desc"][:2047]
+            )
+
+            mIfileName = generateFileName("magicitem")
+
+            magicItemEmbed.add_field(
+                name="LENGTH OF DESCRIPTION TOO LONG FOR DISCORD",
+                value="See `{}` for full description".format(mIfileName),
+                inline=False
+            )
+
+            itemFile = open(mIfileName, "a+")
+            itemFile.write(matchedObj["desc"])
+            itemFile.close()
+
+            responses.append(mIfileName)
+
+        else:
+            magicItemEmbed = discord.Embed(
+                colour=discord.Colour.green(),
+                title="{} (MAGIC ITEM)".format(matchedObj["name"]),
+                description=matchedObj["desc"]
+            )
+        
         magicItemEmbed.add_field(name="TYPE", value=matchedObj["type"], inline=True)
         magicItemEmbed.add_field(name="RARITY", value=matchedObj["rarity"], inline=True)
 
         if matchedObj["requires_attunement"] == "requires_attunement":
-            magicItemEmbed.add_field(name="ATTUNEMENT?", value="YES", inline=True)
+            magicItemEmbed.add_field(name="ATTUNEMENT REQUIRED?", value="YES", inline=True)
         else:
             magicItemEmbed.add_field(name="ATTUNEMENT REQUIRED?", value="NO", inline=True)
 
@@ -934,6 +969,13 @@ def constructResponse(args, route, matchedObj):
         responses.append(noRouteEmbed)
 
     return responses
+
+###
+# FUNC NAME: generateFileName
+# FUNC DESC: Generates a filename using type of file and random number
+# FUNC TYPE: Function
+###
+def generateFileName(fileType): return "{}-{}.txt".format(fileType, str(random.randrange(1,1000000)))
 
 ###
 # FUNC NAME: cleanup
@@ -1065,7 +1107,10 @@ async def search(ctx, *args):
                 )
             )
 
-        entityFile = open("entities.txt", "a+")
+        # Generate a unique filename and write to it
+        entityFileName = generateFileName("entities-search")
+
+        entityFile = open(entityFileName, "a+")
         for entity in directoryRequest.json()["results"]:
             if "title" in entity.keys():
                 entityFile.write("{}\n".format(entity["title"]))
@@ -1077,8 +1122,8 @@ async def search(ctx, *args):
         # Send embed notifying start of the spam stream
         detailsEmbed = discord.Embed(
             colour=discord.Colour.orange(),
-            title="See `entities.txt` for all searchable entities in this endpoint", 
-            description="Due to discord charecter limits regarding embeds, the results below have to be sent in a file. Yes I know this is far from ideal but it's the best I can do!"
+            title="See `{}` for all searchable entities in this endpoint".format(entityFileName), 
+            description="Due to discord charecter limits regarding embeds, the results have to be sent in a file. Yes I know this is far from ideal but it's the best I can do!"
         )
 
         detailsEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
@@ -1086,7 +1131,7 @@ async def search(ctx, *args):
         await ctx.send(embed=detailsEmbed)
 
         # Send entites file
-        return await ctx.send(file=discord.File("entities.txt"))
+        return await ctx.send(file=discord.File(entityFileName))
 
     # Filter input to remove whitespaces and set lowercase
     filteredInput = "".join(args).lower()
@@ -1230,7 +1275,10 @@ async def searchdir(ctx, *args):
                 )
             )
 
-        entityFile = open("entities.txt", "a+")
+        # Generate a unique filename and write to it
+        entityDirFileName = generateFileName("entities-searchdir")
+
+        entityFile = open(entityDirFileName, "a+")
         for entity in directoryRequest.json()["results"]:
             if "title" in entity.keys():
                 entityFile.write("{}\n".format(entity["title"]))
@@ -1242,8 +1290,8 @@ async def searchdir(ctx, *args):
         # Send embed notifying start of the spam stream
         detailsEmbed = discord.Embed(
             colour=discord.Colour.orange(),
-            title="See `entities.txt` for all searchable entities in this endpoint", 
-            description="Due to discord charecter limits regarding embeds, the results below have to be sent in a file. Yes I know this is far from ideal but it's the best I can do!"
+            title="See `{}` for all searchable entities in this endpoint".format(entityDirFileName), 
+            description="Due to discord charecter limits regarding embeds, the results have to be sent in a file. Yes I know this is far from ideal but it's the best I can do!"
         )
 
         detailsEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
@@ -1253,7 +1301,7 @@ async def searchdir(ctx, *args):
         await ctx.send(embed=detailsEmbed)
 
         # Send entites file
-        return await ctx.send(file=discord.File("entities.txt"))
+        return await ctx.send(file=discord.File(entityDirFileName))
 
     # search/ endpoint is best used with the dedicated ?search command
     if "search" in filteredDictionary:
