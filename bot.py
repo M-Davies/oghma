@@ -20,6 +20,7 @@ TOKEN = os.getenv('BOT_TOKEN')
 bot = commands.Bot(command_prefix='?')
 client = discord.Client()
 partialMatch = False
+searchParamEndpoints = ["spells", "monsters", "magicitems", "weapons"]
 
 # Set up logging
 logger = logging.getLogger('discord')
@@ -95,19 +96,25 @@ def requestAPI(query, filteredInput, wideSearch):
         # Request resource using the first word of the name to filter results
         route = output["route"]
 
+        # Determine filter type (search can only be used for some endpoints)
+        filterType = "text"
+        if route in searchParamEndpoints: filterType = "search"
+            
         if "title" in output:
             resourceRequest = requests.get(
-                "https://api.open5e.com/{}?format=json&limit=10000&search={}"
+                "https://api.open5e.com/{}?format=json&limit=10000&{}={}"
                 .format(
                     route,
+                    filterType,
                     output["title"].split()[0]
                 )
             )
         else:
             resourceRequest = requests.get(
-                "https://api.open5e.com/{}?format=json&limit=10000&search={}"
+                "https://api.open5e.com/{}?format=json&limit=10000&{}={}"
                 .format(
                     route,
+                    filterType,
                     output["name"].split()[0]
                 )
             )
@@ -138,7 +145,7 @@ def requestAPI(query, filteredInput, wideSearch):
 # FUNC TYPE: Function
 ###
 def constructResponse(args, route, matchedObj):
-    responseEmbeds = []
+    responses = []
 
     # Document
     if route == "documents/":
@@ -165,7 +172,7 @@ def constructResponse(args, route, matchedObj):
 
         documentEmbed.set_thumbnail(url="https://i.imgur.com/lnkhxCe.jpg")
 
-        responseEmbeds.append(documentEmbed)
+        responses.append(documentEmbed)
 
     # Spell
     elif route == "spells/":
@@ -201,7 +208,7 @@ def constructResponse(args, route, matchedObj):
 
         spellEmbed.set_thumbnail(url="https://i.imgur.com/W15EmNT.jpg")
 
-        responseEmbeds.append(spellEmbed)
+        responses.append(spellEmbed)
 
     # Monster
     elif route == "monsters/":
@@ -340,7 +347,7 @@ def constructResponse(args, route, matchedObj):
             inline=True
         )
 
-        responseEmbeds.append(monsterEmbedBasics)
+        responses.append(monsterEmbedBasics)
 
         ## 2ND EMBED ##
         monsterEmbedSkills = discord.Embed(
@@ -378,7 +385,7 @@ def constructResponse(args, route, matchedObj):
             inline=False
         )
 
-        responseEmbeds.append(monsterEmbedSkills)
+        responses.append(monsterEmbedSkills)
 
         ## 3RD EMBED ##
         monsterEmbedActions = discord.Embed(
@@ -425,7 +432,7 @@ def constructResponse(args, route, matchedObj):
                     inline=False
                 )
 
-        responseEmbeds.append(monsterEmbedActions)
+        responses.append(monsterEmbedActions)
 
         ## 4TH EMBED (only used if it has legendary actions) ##
         if matchedObj["legendary_desc"] != "":
@@ -442,22 +449,22 @@ def constructResponse(args, route, matchedObj):
                     inline=False
                 )
 
-            responseEmbeds.append(monsterEmbedLegend)
+            responses.append(monsterEmbedLegend)
 
         # Author & Image for all embeds
-        for embed in responseEmbeds:
+        for embed in responses:
             if matchedObj["img_main"] != None: embed.set_thumbnail(url=matchedObj["img_main"])
             else: embed.set_thumbnail(url="https://i.imgur.com/6HsoQ7H.jpg")
 
     # Background
-    elif route == "background/":
+    elif route == "backgrounds/":
+
+        # 1st Embed (Basics)
         backgroundEmbed = discord.Embed(
             colour=discord.Colour.green(),
-            title="{} (BACKGROUND)".format(matchedObj["name"])
+            title="{} (BACKGROUND): BASICS".format(matchedObj["name"]),
+            description=matchedObj["desc"]
         )
-
-        # Description
-        backgroundEmbed.add_field(name="DESCRIPTION", value=matchedObj["desc"], inline=False)
 
         # Profs
         if matchedObj["tool_proficiencies"] != None: 
@@ -475,7 +482,8 @@ def constructResponse(args, route, matchedObj):
             )
 
         # Languages
-        if matchedObj["languages"] != None: backgroundEmbed.add_field(name="LANGUAGES", value=matchedObj["languages"], inline=True)
+        if matchedObj["languages"] != None: 
+            backgroundEmbed.add_field(name="LANGUAGES", value=matchedObj["languages"], inline=True)
 
         # Equipment
         backgroundEmbed.add_field(name="EQUIPMENT", value=matchedObj["equipment"], inline=False)
@@ -483,13 +491,54 @@ def constructResponse(args, route, matchedObj):
         # Feature
         backgroundEmbed.add_field(name=matchedObj["feature"], value=matchedObj["feature_desc"], inline=False)
 
-        # Charecteristics
+        responses.append(backgroundEmbed)
+        
+        # 2nd Embed (feature)
+        backgroundFeatureEmbed = discord.Embed(
+            colour=discord.Colour.green(),
+            title="{} (BACKGROUND)\nFEATURE ({})".format(matchedObj["name"], matchedObj["feature"].upper()),
+            description=matchedObj["feature_desc"]
+        )
+
+        responses.append(backgroundFeatureEmbed)
+
+        # 3rd Embed & File (suggested characteristics)
         if matchedObj["suggested_characteristics"] != None:
-            backgroundEmbed.add_field(name="CHARECTERISTICS", value=matchedObj["suggested_characteristics"], inline=False)
 
-        backgroundEmbed.set_thumbnail(url="https://i.imgur.com/GhGODan.jpg")
+            if len(matchedObj["suggested_characteristics"]) < 2048:
 
-        responseEmbeds.append(backgroundEmbed)
+                backgroundChars = discord.Embed(
+                    colour=discord.Colour.green(),
+                    title="{} (BACKGROUND): CHARECTERISTICS".format(matchedObj["name"]),
+                    description=matchedObj["suggested_characteristics"]
+                )
+
+                responses.append(backgroundChars)
+
+            else:
+                backgroundChars = discord.Embed(
+                    colour=discord.Colour.green(),
+                    title="{} (BACKGROUND): CHARECTERISTICS".format(matchedObj["name"]),
+                    description=matchedObj["suggested_characteristics"][:2047]
+                )
+                backgroundChars.add_field(
+                    name="LENGTH OF CHARECTERISTICS TOO LONG FOR DISCORD",
+                    value="See `characteristics.txt` for full description",
+                    inline=False
+                )
+
+                responses.append(backgroundChars)
+
+                # Create characteristics.txt
+                characteristicsFile = open("characteristics.txt", "a+")
+                characteristicsFile.write(matchedObj["suggested_characteristics"])
+                characteristicsFile.close()
+
+                responses.append("characteristics.txt")
+
+        for response in responses: 
+            if isinstance(response, discord.Embed):
+                response.set_thumbnail(url="https://i.imgur.com/GhGODan.jpg")
 
     # Plane
     elif route == "planes/":
@@ -502,7 +551,7 @@ def constructResponse(args, route, matchedObj):
         
         planeEmbed.set_thumbnail(url="https://i.imgur.com/GJk1HFh.jpg")
 
-        responseEmbeds.append(planeEmbed)
+        responses.append(planeEmbed)
 
     # Section (NOT SUPPORTED YET)
     elif route == "sections/":
@@ -532,7 +581,7 @@ def constructResponse(args, route, matchedObj):
             else: generalDescription += " " + line
 
         sectionEmbedDesc.add_field(name="DESCRIPTON", value=generalDescription, inline=False)
-        responseEmbeds.append(sectionEmbedDesc)
+        responses.append(sectionEmbedDesc)
 
         # Remove general description from the list to help parse the rest of it
         lineCount = 0
@@ -577,10 +626,10 @@ def constructResponse(args, route, matchedObj):
                     description=desc
                 )
 
-            responseEmbeds.append(sectionEmbedBlock)
+            responses.append(sectionEmbedBlock)
 
         # Finish up
-        for embed in responseEmbeds: embed.set_thumbnail(url="https://i.imgur.com/J75S6bF.jpg")
+        for embed in responses: embed.set_thumbnail(url="https://i.imgur.com/J75S6bF.jpg")
 
     # Feat
     elif route == "feats/":
@@ -592,7 +641,7 @@ def constructResponse(args, route, matchedObj):
         featEmbed.add_field(name="DESCRIPTION", value=matchedObj["desc"], inline=False)
         featEmbed.set_thumbnail(url="https://i.imgur.com/X1l7Aif.jpg")
 
-        responseEmbeds.append(featEmbed)
+        responses.append(featEmbed)
 
     # Condition
     elif route == "conditions/":
@@ -613,7 +662,7 @@ def constructResponse(args, route, matchedObj):
             )
         conditionEmbed.set_thumbnail(url="https://i.imgur.com/tOdL5n3.jpg")
 
-        responseEmbeds.append(conditionEmbed)
+        responses.append(conditionEmbed)
 
     # Race
     elif route == "races/":
@@ -656,7 +705,7 @@ def constructResponse(args, route, matchedObj):
                 raceEmbed.add_field(name="TRAITS", value=matchedObj["traits"], inline=False)
 
         raceEmbed.set_thumbnail(url="https://i.imgur.com/OUSzh8W.jpg")
-        responseEmbeds.append(raceEmbed)
+        responses.append(raceEmbed)
 
         # Start new embed for any subraces
         if matchedObj["subraces"] != []:
@@ -682,7 +731,7 @@ def constructResponse(args, route, matchedObj):
                         subraceEmbed.add_field(name="TRAITS", value=subrace["traits"], inline=False)
 
                 subraceEmbed.set_thumbnail(url="https://i.imgur.com/OUSzh8W.jpg")
-                responseEmbeds.append(subraceEmbed)
+                responses.append(subraceEmbed)
     
     # Class
     elif route == "classes/":
@@ -704,7 +753,7 @@ def constructResponse(args, route, matchedObj):
                 description=matchedObj["desc"][:2047]
             )
 
-        responseEmbeds.append(classDescEmbed)
+        responses.append(classDescEmbed)
 
         # 2nd Embed (TABLE)
         if len(matchedObj["table"]) > 2047:
@@ -722,7 +771,7 @@ def constructResponse(args, route, matchedObj):
                 description=matchedObj["desc"]
             )
 
-        responseEmbeds.append(classTableEmbed)
+        responses.append(classTableEmbed)
 
 
         # 3rd Embed (DETAILS)
@@ -787,10 +836,10 @@ def constructResponse(args, route, matchedObj):
                         description=archtype["desc"]
                     )
 
-                responseEmbeds.append(archTypeEmbed)
+                responses.append(archTypeEmbed)
 
         # Finish up
-        for embed in responseEmbeds: embed.set_thumbnail(url="https://i.imgur.com/Mjh6AAi.jpg")
+        for embed in responses: embed.set_thumbnail(url="https://i.imgur.com/Mjh6AAi.jpg")
    
     # Magic Item
     elif route == "magicitems/":
@@ -810,7 +859,7 @@ def constructResponse(args, route, matchedObj):
 
         magicItemEmbed.set_thumbnail(url="https://i.imgur.com/2wzBEjB.png")
 
-        responseEmbeds.append(magicItemEmbed)
+        responses.append(magicItemEmbed)
 
     # Weapon
     elif route == "weapons/":
@@ -835,7 +884,7 @@ def constructResponse(args, route, matchedObj):
 
         weaponEmbed.set_thumbnail(url="https://i.imgur.com/pXEe4L9.png")
 
-        responseEmbeds.append(weaponEmbed)
+        responses.append(weaponEmbed)
     
     else:
         # Don't add a footer to an error embed
@@ -851,10 +900,28 @@ def constructResponse(args, route, matchedObj):
         )
         noRouteEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
         
-        responseEmbeds.append(noRouteEmbed)
+        responses.append(noRouteEmbed)
 
-    return responseEmbeds
+    return responses
 
+###
+# FUNC NAME: cleanup
+# FUNC DESC: Cleans up all txt files created from the last command
+# FUNC TYPE: Function
+###
+def cleanup():
+    for txtFile in os.listdir():
+
+        if ".txt" in txtFile:
+            print("Trying to clean {}".format(txtFile))
+
+            if os.path.exists(txtFile):
+                os.remove(txtFile)
+
+                if os.path.exists(txtFile): print("ERROR: {} could not be deleted!".format(txtFile))
+                else: print("{} successfully deleted!\n------".format(txtFile))
+
+    print("All text files deleted!")
 
 ###
 # FUNC NAME: codeError
@@ -875,7 +942,6 @@ def codeError(statusCode, query):
     )
 
     codeEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-    codeEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
 
     return codeEmbed
 
@@ -890,18 +956,7 @@ async def on_ready():
 
     # Cleanup from last run
     print("Cleaning up old files...")
-
-    # TODO: Need to make this public to all functions
-    print("Trying to clean entities.txt")
-    if os.path.exists("entities.txt"):
-        os.remove("entities.txt")
-
-        if os.path.exists("entities.txt"):
-            print("ERROR: entities.txt could not be deleted")
-        else:
-            print("entities.txt successfully deleted!")
-    else:
-        print("entities.txt does not exist. Skipping...")
+    cleanup()
     print("------")
 
     # All done!
@@ -934,6 +989,9 @@ async def search(ctx, *args):
     global partialMatch
     partialMatch = False
 
+    print("Cleaning up old files...")
+    cleanup()
+
     # Verify we have args
     if len(args) <= 0:
         usageEmbed = discord.Embed(
@@ -943,7 +1001,6 @@ async def search(ctx, *args):
         )
 
         usageEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
-        usageEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
 
         return await ctx.send(embed=usageEmbed)
 
@@ -955,7 +1012,6 @@ async def search(ctx, *args):
             description="This command does not support more than 200 words in a single message. Try splitting up your query."
         )
         argumentsEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-        argumentsEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
 
         return await ctx.send(embed=argumentsEmbed)
 
@@ -995,7 +1051,6 @@ async def search(ctx, *args):
         )
 
         detailsEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
-        detailsEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
 
         await ctx.send(embed=detailsEmbed)
 
@@ -1028,7 +1083,6 @@ async def search(ctx, *args):
         )
 
         unknownMatchEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-        unknownMatchEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
 
         return await ctx.send(embed=unknownMatchEmbed)
 
@@ -1041,25 +1095,29 @@ async def search(ctx, *args):
         )
 
         noMatchEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
-        noMatchEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
 
         return await ctx.send(embed=noMatchEmbed)
 
-    # Otherwise, construct & send response embeds
+    # Otherwise, construct & send responses
     else:
-        responseEmbeds = constructResponse(args, match["route"], match["matchedObj"])
-        for embed in responseEmbeds:
+        responses = constructResponse(args, match["route"], match["matchedObj"])
+        for response in responses:
 
-            embed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
+            if isinstance(response, discord.Embed):
+                print(type(response))
 
-            # Note partial match in footer of embed
-            if partialMatch == True: 
-                embed.set_footer(text="NOTE: Your search term ({}) was a PARTIAL match to this entity.\nIf this isn't the entity you were expecting, try refining your search term or use ?searchdir instead".format(args))
-            else:
-                embed.set_footer(text="NOTE: If this isn't the entity you were expecting, try refining your search term or use ?searchdir instead")
+                # Note partial match in footer of embed
+                if partialMatch == True: 
+                    response.set_footer(text="NOTE: Your search term ({}) was a PARTIAL match to this entity.\nIf this isn't the entity you were expecting, try refining your search term or use ?searchdir instead".format(filteredInput))
+                else:
+                    response.set_footer(text="NOTE: If this isn't the entity you were expecting, try refining your search term or use `?searchdir` instead")
 
-            print("SENDING EMBED...")
-            await ctx.send(embed=embed)
+                print("SENDING EMBED...")
+                await ctx.send(embed=response)
+
+            elif ".txt" in response:
+                print("SENDING FILE...")
+                await ctx.send(file=discord.File(response))
 
     print("DONE!")
 
@@ -1082,6 +1140,9 @@ async def searchdir(ctx, *args):
     global partialMatch
     partialMatch = False
 
+    print("Cleaning up old files...")
+    cleanup()
+
     # Verify we have arguments
     if len(args) <= 0:
         usageEmbed = discord.Embed(
@@ -1091,7 +1152,6 @@ async def searchdir(ctx, *args):
         )
 
         usageEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
-        usageEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
 
         return await ctx.send(embed=usageEmbed)
 
@@ -1117,7 +1177,6 @@ async def searchdir(ctx, *args):
             description="This command does not support more than 200 words in a single message. Try splitting up your query."
         )
         argumentsEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-        argumentsEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
 
         return await ctx.send(embed=argumentsEmbed)
 
@@ -1157,7 +1216,6 @@ async def searchdir(ctx, *args):
         )
 
         detailsEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
-        detailsEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
         if "search" in filteredDictionary:
             detailsEmbed.set_footer(text="NOTE: The `search` endpoint is not searchable with `?searchdir`. Use `?search` instead for this.")
 
@@ -1181,7 +1239,6 @@ async def searchdir(ctx, *args):
 
         searchEmbed.add_field(name="NOTE", value="Use `?search` for searching the `search/` directory. This has been done to cut down on parsing errors.")
         searchEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
-        searchEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
 
         return await ctx.send(embed=searchEmbed)
 
@@ -1199,7 +1256,6 @@ async def searchdir(ctx, *args):
         )
 
         noResourceEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
-        noResourceEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
 
         return await ctx.send(embed=noResourceEmbed)
 
@@ -1210,10 +1266,15 @@ async def searchdir(ctx, *args):
         description="WARNING: This may take a while!"
     ))
     
+    # Determine filter type (search can only be used for some endpoints)
+    filterType = "text"
+    if args[0] in searchParamEndpoints: filterType = "search"
+
     # Use first word to narrow search results down for quicker response on some directories
     match = requestAPI(
-        "https://api.open5e.com/{}?format=json&limit=10000&text={}".format(
+        "https://api.open5e.com/{}?format=json&limit=10000&{}={}".format(
             filteredDictionary,
+            filterType,
             str(args[1])
         ),
         filteredInput,
@@ -1233,7 +1294,6 @@ async def searchdir(ctx, *args):
         )
 
         unknownMatchEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-        unknownMatchEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
 
         return await ctx.send(embed=unknownMatchEmbed)
 
@@ -1246,23 +1306,26 @@ async def searchdir(ctx, *args):
         )
 
         noMatchEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
-        noMatchEmbed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
 
         return await ctx.send(embed=noMatchEmbed)
 
-    # Otherwise, construct & send response embeds
+    # Otherwise, construct & send responses
     else:
-        responseEmbeds = constructResponse(args, filteredDictionary, match)
-        for embed in responseEmbeds:
+        responses = constructResponse(args, filteredDictionary, match)
+        for response in responses:
+            
+            if isinstance(response, discord.Embed):
 
-            embed.set_author(name=botName, icon_url="https://i.imgur.com/Pq2fobL.jpg")
+                # Note partial match in footer of embed
+                if partialMatch == True: 
+                    response.set_footer(text="NOTE: Your search term ({}) was a PARTIAL match to this entity.\nIf this isn't the entity you were expecting, try refining your search term or use `?searchdir` instead".format(filteredInput))
 
-            # Note partial match in footer of embed
-            if partialMatch == True: 
-                embed.set_footer(text="NOTE: Your search term ({}) was a PARTIAL match to this entity.\nIf this isn't the entity you were expecting, try refining your search term or use ?searchdir instead".format(args))
+                print("SENDING EMBED...")
+                await ctx.send(embed=response)
 
-            print("SENDING EMBED...")
-            await ctx.send(embed=embed)
+            elif ".txt" in response:
+                print("SENDING FILE...")
+                await ctx.send(file=discord.File(response))
 
     print("DONE!")
 
