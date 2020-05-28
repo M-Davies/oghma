@@ -1026,9 +1026,44 @@ def codeError(statusCode, query):
     return codeEmbed
 
 ###
+# FUNC NAME: on_command_error
+# FUNC DESC: Sends useful output on an error occurance to the user
+# FUNC TYPE: Event
+###
+async def on_command_error(ctx, error):
+
+    # Throw if discord failed to execute a command
+    if isinstance(error, commands.CommandInvokeError):
+        invokeEmbed = discord.Embed(
+            colour=discord.Colour.red(),
+            name="ERROR: COMMAND FAILED TO EXECUTE",
+            description=error
+        )
+        
+        invokeEmbed.add_field(name="NOTE", value="Please report this to https://github.com/shadowedlucario/oghma/issues stating how you encounted this bug and with the following infomation...", inline=False)
+        
+        invokeEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
+
+        return await ctx.send(embed=invokeEmbed)
+
+    # Another unexpected error occured
+    else:
+        unexpectedEmbed = discord.Embed(
+            colour=discord.Colour.red(),
+            name="ERROR: UNEXPECTED EXCEPTION OCCURED",
+            description=error
+        )
+
+        unexpectedEmbed.add_field(name="NOTE", value="Please report this to https://github.com/shadowedlucario/oghma/issues stating how you encounted this bug and with the following infomation...", inline=False)
+        
+        unexpectedEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
+
+        return await ctx.send(embed=unexpectedEmbed)
+
+###
 # FUNC NAME: on_ready
 # FUNC DESC: Tells you when bot is ready to accept commands. Also cleans up temp files.
-# FUNC TYPE: Command
+# FUNC TYPE: Event
 ###
 @bot.event
 async def on_ready():
