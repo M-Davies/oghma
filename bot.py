@@ -1093,7 +1093,6 @@ async def ping(ctx):
 # FUNC TYPE: Command
 ###
 @bot.command(
-    pass_context=True,
     name='search',
     help='Queries the Open5e API to get the entities infomation.',
     usage='?search [ENTITY]',
@@ -1248,7 +1247,6 @@ async def search(ctx, *args):
 # FUNC TYPE: Command
 ###
 @bot.command(
-    pass_context=True,
     name='searchdir',
     help='Queries the Open5e API to get the entities infomation from the specified resource.',
     usage='?search [RESOURCE] [ENTITY]',
