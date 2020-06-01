@@ -35,6 +35,7 @@ logger.addHandler(handler)
 # FUNC DESC: Searches the API response for the user input. Returns None if nothing was found
 # FUNC TYPE: Function
 ###
+# TODO: Rejig this so that we search for a normal match first, then a partial one
 def searchResponse(responseResults, filteredInput):
     global partialMatch
     match = None
@@ -72,11 +73,38 @@ def searchResponse(responseResults, filteredInput):
     return match
 
 ###
-# FUNC NAME: requestAPI
-# FUNC DESC: Queries the API. 
+# FUNC NAME: requestScryfall
+# FUNC DESC: Queries the Scryfall API to obtain a thumbnail image. 
 # FUNC TYPE: Function
 ###
-def requestAPI(query, filteredInput, wideSearch):
+def requestScryfall(searchTerm, searchdir):
+    
+    searchPhrase = " ".join(searchTerm)
+    scryfallRequest = requests.get(f"https://api.scryfall.com/cards/search?q={searchPhrase}&include_extras=true&include_multilingual=true&include_variations=true")
+
+    # Try again with the first arg if nothing was found
+    if scryfallRequest.status_code == 404:
+
+        searchWord = searchTerm[0]
+        if searchdir == True: searchWord = searchTerm[1]
+
+        scryfallWordRequest = requests.get(f"https://api.scryfall.com/cards/search?q={searchWord}&include_extras=true&include_multilingual=true&include_variations=true")
+
+        if scryfallWordRequest.status_code != 200: return scryfallWordRequest.status_code
+        else: return scryfallWordRequest.json()["data"][0]["image_uris"]["art_crop"]
+    
+    # Return code if API request failed
+    elif scryfallRequest.status_code != 200: return scryfallRequest.status_code
+    
+    # Otherwise, return the cropped image url
+    else: return scryfallRequest.json()["data"][0]["image_uris"]["art_crop"]
+
+###
+# FUNC NAME: requestOpen5e
+# FUNC DESC: Queries the Open5e API. 
+# FUNC TYPE: Function
+###
+def requestOpen5e(query, filteredInput, wideSearch):
 
     # API Request
     request = requests.get(query)
@@ -743,7 +771,7 @@ def constructResponse(args, route, matchedObj):
                 responses.append(subraceEmbed)
     
     # Class
-    elif "classe" in route:
+    elif "class" in route:
 
         # 1st Embed & File (BASIC)
         if len(matchedObj["desc"]) < 2047:
@@ -953,7 +981,6 @@ def constructResponse(args, route, matchedObj):
         responses.append(weaponEmbed)
     
     else:
-        # Don't add a footer to an error embed
         global partialMatch
         partialMatch = False
 
@@ -1186,7 +1213,7 @@ async def search(ctx, *args):
     ))
     
     # Use first word to narrow search results down for quicker response on some directories
-    match = requestAPI("https://api.open5e.com/search/?format=json&limit=10000&text={}".format(str(args[0])), filteredInput, True)
+    match = requestOpen5e("https://api.open5e.com/search/?format=json&limit=10000&text={}".format(str(args[0])), filteredInput, True)
 
     # An API Request failed
     if isinstance(match, dict) and "code" in match.keys():
@@ -1222,7 +1249,14 @@ async def search(ctx, *args):
         for response in responses:
 
             if isinstance(response, discord.Embed):
-                print(type(response))
+
+                # Set a thumbnail for relevent embeds and on successful Scyfall request
+                image = requestScryfall(args, False)
+
+                if (not isinstance(image, int)): 
+                    
+                    # This overwrites all other thumbnail setup
+                    response.set_thumbnail(url=image)
 
                 # Note partial match in footer of embed
                 if partialMatch == True: 
@@ -1274,7 +1308,7 @@ async def searchdir(ctx, *args):
         return await ctx.send(embed=usageEmbed)
 
     # Filter the dictionary input
-    # TODO: This is bugged. Seems to save the variable between commands.
+    # FIXME: This is bugged. Seems to save the variable between commands.
     filteredDictionary = args[0].lower() + "/"
 
     # Filter input to remove whitespaces and set lowercase
@@ -1298,6 +1332,23 @@ async def searchdir(ctx, *args):
 
         return await ctx.send(embed=argumentsEmbed)
 
+    # Verify resource exists ( use list() since count() can't be used solely with keys() )
+    if list(rootRequest.json().keys()).count(args[0]) <= 0:
+
+        # Remove search endpoint from list
+        directories = list(rootRequest.json().keys())
+        directories.remove("search")
+
+        noResourceEmbed = discord.Embed(
+            colour=discord.Colour.orange(),
+            title="Requested Directory (`{}`) is not a valid directory name".format(str(args[0])), 
+            description="**Available Directories**\n{}".format(", ".join(directories))
+        )
+
+        noResourceEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
+
+        return await ctx.send(embed=noResourceEmbed)
+    
     # Send directory contents if no search term given
     if len(args) == 1:
 
@@ -1317,16 +1368,31 @@ async def searchdir(ctx, *args):
                 )
             )
 
+        entityNames = []
+        for entity in directoryRequest.json()["results"]:
+            if "title" in entity.keys(): entityNames.append(entity['title'])
+            else: entityNames.append(entity['name'])
+
+        # Keep description word count low to account for names with lots of charecters
+        if len(entityNames) <= 200:
+
+            detailsEmbed = discord.Embed(
+                colour=discord.Colour.orange(),
+                title="All searchable entities in this endpoint", 
+                description="\n".join(entityNames)
+            )
+
+            detailsEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
+            if "search" in filteredDictionary:
+                detailsEmbed.set_footer(text="NOTE: The `search` endpoint is not searchable with `?searchdir`. Use `?search` instead for this.")
+
+            return await ctx.send(embed=detailsEmbed)
+
         # Generate a unique filename and write to it
         entityDirFileName = generateFileName("entities-searchdir")
 
         entityFile = open(entityDirFileName, "a+")
-        for entity in directoryRequest.json()["results"]:
-            if "title" in entity.keys():
-                entityFile.write("{}\n".format(entity["title"]))
-            else:
-                entityFile.write("{}\n".format(entity["name"]))
-
+        entityFile.write("\n".join(entityNames))
         entityFile.close()
 
         # Send embed notifying start of the spam stream
@@ -1363,23 +1429,6 @@ async def searchdir(ctx, *args):
 
         return await ctx.send(embed=searchEmbed)
 
-    # Verify resource exists
-    if args[0] not in rootRequest.json().keys():
-
-        # Remove search endpoint from list
-        directories = list(rootRequest.json().keys())
-        directories.remove("search")
-
-        noResourceEmbed = discord.Embed(
-            colour=discord.Colour.orange(),
-            title="Requested Directory (`{}`) is not a valid directory name".format(str(args[0])), 
-            description="**Available Directories**\n{}".format(", ".join(directories))
-        )
-
-        noResourceEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
-
-        return await ctx.send(embed=noResourceEmbed)
-
     # Search API
     await ctx.send(embed=discord.Embed(
         color=discord.Colour.blue(),
@@ -1392,7 +1441,7 @@ async def searchdir(ctx, *args):
     if args[0] in searchParamEndpoints: filterType = "search"
 
     # Use first word to narrow search results down for quicker response on some directories
-    match = requestAPI(
+    match = requestOpen5e(
         "https://api.open5e.com/{}?format=json&limit=10000&{}={}".format(
             filteredDictionary,
             filterType,
@@ -1436,6 +1485,14 @@ async def searchdir(ctx, *args):
         for response in responses:
             
             if isinstance(response, discord.Embed):
+
+                # Set a thumbnail for relevent embeds and on successful Scyfall request.
+                image = requestScryfall(args, True)
+
+                if (not isinstance(image, int)):
+
+                    # This overwrites all other thumbnail setup
+                    response.set_thumbnail(url=image)
 
                 # Note partial match in footer of embed
                 if partialMatch == True: 
