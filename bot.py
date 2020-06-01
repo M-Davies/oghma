@@ -35,10 +35,11 @@ logger.addHandler(handler)
 # FUNC DESC: Searches the API response for the user input. Returns None if nothing was found
 # FUNC TYPE: Function
 ###
-# TODO: Rejig this so that we search for a normal match first, then a partial one
 def searchResponse(responseResults, filteredInput):
     global partialMatch
     match = None
+
+    # First, look for an exact match after parsing
     for entity in responseResults:
 
         # Documents don't have a name attribute
@@ -48,28 +49,37 @@ def searchResponse(responseResults, filteredInput):
             if entity["title"].replace(" ", "").lower() == filteredInput:
                 match = entity
                 break
-
-            # Now try partially matching the entity (i.e. bluedragon will match adultbluedragon here)
-            if filteredInput in entity["title"].replace(" ", "").lower():
-                partialMatch = True
-
-                match = entity
-                break
         
-        elif "name" in entity:
+        if "name" in entity:
             
             if entity["name"].replace(" ", "").lower() == filteredInput:
                 match = entity
                 break
 
-            if filteredInput in entity["name"].replace(" ", "").lower():
-                partialMatch = True
-
-                match = entity
-                break
-
         else: match = "UNKNOWN"
 
+    # Now try partially matching the entity (i.e. bluedragon will match adultbluedragon here)
+    if match == None or match == "UNKNOWN":
+        for entity in responseResults:
+
+            if "title" in entity:
+
+                if filteredInput in entity["title"].replace(" ", "").lower():
+                    partialMatch = True
+
+                    match = entity
+                    break
+            
+            if "name" in entity:
+
+                if filteredInput in entity["name"].replace(" ", "").lower():
+                    partialMatch = True
+
+                    match = entity
+                    break
+
+            else: match = "UNKNOWN"
+    
     return match
 
 ###
@@ -1348,7 +1358,7 @@ async def searchdir(ctx, *args):
         noResourceEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
 
         return await ctx.send(embed=noResourceEmbed)
-    
+
     # Send directory contents if no search term given
     if len(args) == 1:
 
