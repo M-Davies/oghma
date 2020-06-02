@@ -20,6 +20,7 @@ botName = "Oghma"
 TOKEN = os.getenv('BOT_TOKEN')
 bot = commands.Bot(command_prefix='?')
 client = discord.Client()
+
 partialMatch = False
 searchParamEndpoints = ["spells", "monsters", "magicitems", "weapons"]
 
@@ -36,6 +37,10 @@ logger.addHandler(handler)
 # FUNC TYPE: Function
 ###
 def searchResponse(responseResults, filteredInput):
+
+    # Sets entity name/title to lowercase and removes spaces
+    def parse(entityHeader): return entityHeader.replace(" ", "").lower()
+
     global partialMatch
     match = None
 
@@ -46,13 +51,13 @@ def searchResponse(responseResults, filteredInput):
         if "title" in entity:
 
             # Has to be in it's own "if" to avoid KeyErrors
-            if entity["title"].replace(" ", "").lower() == filteredInput:
+            if parse(entity["title"]) == filteredInput:
                 match = entity
                 break
         
-        if "name" in entity:
+        elif "name" in entity:
             
-            if entity["name"].replace(" ", "").lower() == filteredInput:
+            if parse(entity["name"]) == filteredInput:
                 match = entity
                 break
 
@@ -60,19 +65,20 @@ def searchResponse(responseResults, filteredInput):
 
     # Now try partially matching the entity (i.e. bluedragon will match adultbluedragon here)
     if match == None or match == "UNKNOWN":
+
         for entity in responseResults:
 
             if "title" in entity:
 
-                if filteredInput in entity["title"].replace(" ", "").lower():
+                if filteredInput in parse(entity["title"]):
                     partialMatch = True
 
                     match = entity
                     break
             
-            if "name" in entity:
+            elif "name" in entity:
 
-                if filteredInput in entity["name"].replace(" ", "").lower():
+                if filteredInput in parse(entity["name"]):
                     partialMatch = True
 
                     match = entity
@@ -89,14 +95,13 @@ def searchResponse(responseResults, filteredInput):
 ###
 def requestScryfall(searchTerm, searchdir):
     
-    searchPhrase = " ".join(searchTerm)
-    scryfallRequest = requests.get(f"https://api.scryfall.com/cards/search?q={ searchPhrase }&include_extras=true&include_multilingual=true&include_variations=true")
+    scryfallRequest = requests.get(f"https://api.scryfall.com/cards/search?q={ ' '.join(searchTerm) }&include_extras=true&include_multilingual=true&include_variations=true")
 
     # Try again with the first arg if nothing was found
     if scryfallRequest.status_code == 404:
 
         searchWord = searchTerm[0]
-        if searchdir == True: searchWord = searchTerm[1]
+        if searchdir: searchWord = searchTerm[1]
 
         scryfallWordRequest = requests.get(f"https://api.scryfall.com/cards/search?q={ searchWord }&include_extras=true&include_multilingual=true&include_variations=true")
 
@@ -130,7 +135,7 @@ def requestOpen5e(query, filteredInput, wideSearch):
     elif output == "UNKNOWN": return "UNKNOWN"
 
     # Find resource object if coming from search endpoint
-    elif wideSearch == True:
+    elif wideSearch:
 
         # Request resource using the first word of the name to filter results
         route = output["route"]
@@ -255,13 +260,13 @@ def constructResponse(args, route, matchedObj):
         if matchedObj["strength_save"] != None:
             monsterEmbedBasics.add_field(
                 name="STRENGTH",
-                value=f"**{ matchedObj['strength'] }** (SAVE: **{ matchedObj['strength_save'] }**)",
+                value=f"{ matchedObj['strength'] } (SAVE: **{ matchedObj['strength_save'] }**)",
                 inline=True
             )
         else:
             monsterEmbedBasics.add_field(
                 name="STRENGTH",
-                value=f"**{ matchedObj['strength'] }**",
+                value=f"{ matchedObj['strength'] }",
                 inline=True
             )
 
@@ -269,13 +274,13 @@ def constructResponse(args, route, matchedObj):
         if matchedObj["dexterity_save"] != None:
             monsterEmbedBasics.add_field(
                 name="DEXTERITY",
-                value=f"**{matchedObj['dexterity']}** (SAVE: **{ matchedObj['dexterity_save'] }**)",
+                value=f"{matchedObj['dexterity']} (SAVE: **{ matchedObj['dexterity_save'] }**)",
                 inline=True
             )
         else:
             monsterEmbedBasics.add_field(
                 name="DEXTERITY",
-                value=f"**{ matchedObj['dexterity'] }**",
+                value=f"{ matchedObj['dexterity'] }",
                 inline=True
             )
 
@@ -283,13 +288,13 @@ def constructResponse(args, route, matchedObj):
         if matchedObj["constitution_save"] != None:
             monsterEmbedBasics.add_field(
                 name="CONSTITUTION",
-                value=f"**{ matchedObj['constitution'] }** (SAVE: **{ matchedObj['constitution_save'] }**)",
+                value=f"{ matchedObj['constitution'] } (SAVE: **{ matchedObj['constitution_save'] }**)",
                 inline=True
             )
         else:
             monsterEmbedBasics.add_field(
                 name="CONSTITUTION",
-                value=f"**{ matchedObj['constitution'] }**",
+                value=f"{ matchedObj['constitution'] }",
                 inline=True
             )
 
@@ -297,13 +302,13 @@ def constructResponse(args, route, matchedObj):
         if matchedObj["intelligence_save"] != None:
             monsterEmbedBasics.add_field(
                 name="INTELLIGENCE",
-                value=f"**{ matchedObj['intelligence'] }** (SAVE: **{ matchedObj['intelligence_save'] }**)",
+                value=f"{ matchedObj['intelligence'] } (SAVE: **{ matchedObj['intelligence_save'] }**)",
                 inline=True
             )
         else:
             monsterEmbedBasics.add_field(
                 name="INTELLIGENCE",
-                value=f"**{ matchedObj['intelligence'] }**",
+                value=f"{ matchedObj['intelligence'] }",
                 inline=True
             )
 
@@ -311,13 +316,13 @@ def constructResponse(args, route, matchedObj):
         if matchedObj["wisdom_save"] != None:
             monsterEmbedBasics.add_field(
                 name="WISDOM",
-                value=f"**{ matchedObj['wisdom'] }** (SAVE: **{ matchedObj['wisdom_save'] }**)",
+                value=f"{ matchedObj['wisdom'] } (SAVE: **{ matchedObj['wisdom_save'] }**)",
                 inline=True
             )
         else:
             monsterEmbedBasics.add_field(
                 name="WISDOM",
-                value=f"**{ matchedObj['wisdom'] }**",
+                value=f"{ matchedObj['wisdom'] }",
                 inline=True
             )
 
@@ -325,27 +330,27 @@ def constructResponse(args, route, matchedObj):
         if matchedObj["charisma_save"] != None:
             monsterEmbedBasics.add_field(
                 name="CHARISMA",
-                value=f"**{ matchedObj['charisma'] }** (SAVE: **{ matchedObj['charisma_save'] }**)",
+                value=f"{ matchedObj['charisma'] } (SAVE: **{ matchedObj['charisma_save'] }**)",
                 inline=True
             )
         else:
             monsterEmbedBasics.add_field(
                 name="CHARISMA",
-                value=f"**{ matchedObj['charisma'] }**",
+                value=f"{ matchedObj['charisma'] }",
                 inline=True
             )
 
         # Hit points/dice
         monsterEmbedBasics.add_field(
-            name=f"HIT POINTS ({ str(matchedObj['hit_points']) })", 
+            name=f"HIT POINTS (**{ str(matchedObj['hit_points']) }**)", 
             value=matchedObj["hit_dice"], 
             inline=True
         )
 
         # Speeds
         monsterSpeeds = ""
-        for speed in matchedObj["speed"].items(): 
-            monsterSpeeds += f"**{ speed[0].upper() }**: { str(speed[1]) }\n"
+        for speedType, speed in matchedObj["speed"].items(): 
+            monsterSpeeds += f"**{ speedType }**: { speed }\n"
         monsterEmbedBasics.add_field(name="SPEED", value=monsterSpeeds, inline=True)
 
         # Armour
@@ -364,15 +369,11 @@ def constructResponse(args, route, matchedObj):
         )
 
         # Skills & Perception
-        if matchedObj["skills"] != {} and matchedObj["perception"] != None:
+        if matchedObj["skills"] != {}:
             monsterSkills = ""
-            for skill in matchedObj["skills"].items(): 
-                monsterSkills += f"**{ skill[0].upper() }**: { str(skill[1]) }\n"
+            for skillName, skillValue in matchedObj["skills"].items(): 
+                monsterSkills += f"**{ skillName }**: { skillValue }\n"
             monsterEmbedSkills.add_field(name="SKILLS", value=monsterSkills, inline=True)
-
-        elif matchedObj["perception"] != None:
-            monsterEmbedSkills.add_field(name="PERCEPTION", value=str(matchedObj["perception"]), inline=True)
-        else: pass
 
         # Senses
         monsterEmbedSkills.add_field(name="SENSES", value=matchedObj["senses"], inline=True)
@@ -384,9 +385,9 @@ def constructResponse(args, route, matchedObj):
         monsterEmbedSkills.add_field(
             name="STRENGTHS & WEAKNESSES",
             value="**VULNERABLE TO:** {}\n**RESISTANT TO:** {}\n**IMMUNE TO:** {}".format(
-                matchedObj["damage_vulnerabilities"] if matchedObj["damage_vulnerabilities"] != None else "Nothing",
-                matchedObj["damage_resistances"] if matchedObj["damage_resistances"] != None else "Nothing",
-                matchedObj["damage_immunities"] if matchedObj["damage_immunities"] != None else "Nothing" 
+                matchedObj["damage_vulnerabilities"] if matchedObj["damage_vulnerabilities"] != "" else "Nothing",
+                matchedObj["damage_resistances"] if matchedObj["damage_resistances"] != "" else "Nothing",
+                matchedObj["damage_immunities"] if matchedObj["damage_immunities"] != "" else "Nothing" 
                     + ", "
                         + matchedObj["condition_immunities"] if matchedObj["condition_immunities"] != None else "Nothing",
             ),
@@ -404,7 +405,7 @@ def constructResponse(args, route, matchedObj):
         # Actions
         for action in matchedObj["actions"]:
             monsterEmbedActions.add_field(
-                name=action["name"],
+                name=f"{ action['name'] } (ACTION)",
                 value=action["desc"],
                 inline=False
             )
@@ -413,7 +414,7 @@ def constructResponse(args, route, matchedObj):
         if matchedObj["reactions"] != "":
             for reaction in matchedObj["reactions"]:
                 monsterEmbedActions.add_field(
-                    name=reaction["name"],
+                    name=f"{ reaction['name'] } (REACTION)",
                     value=reaction["desc"],
                     inline=False
                 )
@@ -421,22 +422,23 @@ def constructResponse(args, route, matchedObj):
         # Specials
         for special in matchedObj["special_abilities"]:
             monsterEmbedActions.add_field(
-                name=special["name"],
+                name=f"{ special['name'] } (SPECIAL)",
                 value=special["desc"],
                 inline=False
             )
 
         # Spells
         if matchedObj["spell_list"] != []:
-            for spell in matchedObj["spell_list"]:
-                spellSplit = spell.replace("-", " ").split("/")
 
-                # Remove trailing /, leaving the spell name as the last element in list
-                del spellSplit[-1]
+            # Function to split the spell link down (e.g. https://api.open5e.com/spells/light/), [:-1] removes trailing whitespace
+            def splitSpell(spellName): return spellName.replace("-", " ").split("/")[:-1]
+            
+            for spell in matchedObj["spell_list"]:
+                spellSplit = splitSpell(spell)
 
                 monsterEmbedActions.add_field(
-                    name=spellSplit[-1].upper(),
-                    value=f"To see spell info, `?searchdir SPELLS { spellSplit[-1].upper() }`",
+                    name=spellSplit[-1],
+                    value=f"To see spell info, `?searchdir spells { spellSplit[-1] }`",
                     inline=False
                 )
 
@@ -478,7 +480,7 @@ def constructResponse(args, route, matchedObj):
         if matchedObj["tool_proficiencies"] != None: 
             backgroundEmbed.add_field(
                 name="PROFICIENCIES", 
-                value=f"**SKILL**: { matchedObj['skill_proficiencies'] }\n**TOOL**: { matchedObj['tool_proficiencies'] }",
+                value=f"**SKILLS**: { matchedObj['skill_proficiencies'] }\n**TOOLS**: { matchedObj['tool_proficiencies'] }",
                 inline=True
             )
         else:
@@ -503,7 +505,7 @@ def constructResponse(args, route, matchedObj):
         # 2nd Embed (feature)
         backgroundFeatureEmbed = discord.Embed(
             colour=discord.Colour.green(),
-            title=f"{ matchedObj['name'] } (BACKGROUND)\nFEATURE ({ matchedObj['feature'].upper() })",
+            title=f"{ matchedObj['name'] } (BACKGROUND)\nFEATURE ({ matchedObj['feature'] })",
             description=matchedObj["feature_desc"]
         )
 
@@ -558,7 +560,6 @@ def constructResponse(args, route, matchedObj):
             description=matchedObj["desc"]
         )
 
-        
         planeEmbed.set_thumbnail(url="https://i.imgur.com/GJk1HFh.jpg")
 
         responses.append(planeEmbed)
@@ -655,7 +656,7 @@ def constructResponse(args, route, matchedObj):
         featEmbed = discord.Embed(
             colour=discord.Colour.green(),
             title=f"{ matchedObj['name'] } (FEAT)",
-            description=f"PREREQUISITES: { matchedObj['prerequisite'] }"
+            description=f"PREREQUISITES: **{ matchedObj['prerequisite'] }**"
         )
         featEmbed.add_field(name="DESCRIPTION", value=matchedObj["desc"], inline=False)
         featEmbed.set_thumbnail(url="https://i.imgur.com/X1l7Aif.jpg")
@@ -700,7 +701,7 @@ def constructResponse(args, route, matchedObj):
         raceEmbed.add_field(name="ALIGNMENT", value=matchedObj["alignment"], inline=True)
         raceEmbed.add_field(name="SIZE", value=matchedObj["size"], inline=True)
 
-        # Speed Description
+        # Speeds
         raceEmbed.add_field(name="SPEEDS", value=matchedObj["speed_desc"], inline=False)
 
         # Languages
@@ -729,7 +730,7 @@ def constructResponse(args, route, matchedObj):
 
                 subraceEmbed = discord.Embed(
                     colour=discord.Colour.green(),
-                    title=f"{ subrace['name'] } (SUBRACE OF { matchedObj['name'] })",
+                    title=f"{ subrace['name'] } (Subrace of **{ matchedObj['name'] })",
                     description=subrace["desc"]
                 )
 
@@ -752,64 +753,40 @@ def constructResponse(args, route, matchedObj):
     elif "class" in route:
 
         # 1st Embed & File (BASIC)
-        if len(matchedObj["desc"]) < 2047:
-            classDescEmbed = discord.Embed(
-                colour=discord.Colour.green(),
-                title=f"{ matchedObj['name'] } (CLASS)",
-                description=matchedObj["desc"]
-            )
-
-            # Spell casting
-            if matchedObj["spellcasting_ability"] != "":
-                classDescEmbed.add_field(name="CASTING ABILITY", value=matchedObj["spellcasting_ability"], inline=False)
-
-            responses.append(classDescEmbed)
-
-        else:
-            classDescEmbed = discord.Embed(
-                colour=discord.Colour.green(),
-                title=f"{ matchedObj['name'] } (CLASS): Basics",
-                description=matchedObj["desc"][:2047]
-            )
-
-            # Spell casting
-            if matchedObj["spellcasting_ability"] != "":
-                classDescEmbed.add_field(name="CASTING ABILITY", value=matchedObj["spellcasting_ability"], inline=False)
-
-            clsDesFileName = generateFileName("class-description")
-
-            classDescEmbed.add_field(
-                name="LENGTH OF DESCRIPTION TOO LONG FOR DISCORD",
-                value=f"See `{ clsDesFileName }` for full description",
-                inline=False
-            )
-
-            responses.append(classDescEmbed)
-
-            descFile = open(clsDesFileName, "a+")
-            descFile.write(matchedObj["desc"])
-            descFile.close()
-
-            responses.append(clsDesFileName)
-
-        # 2nd Embed & File (TABLE)
-        clsTblFileName = generateFileName("class-table")
-
-        classTableEmbed = discord.Embed(
+        classDescEmbed = discord.Embed(
             colour=discord.Colour.green(),
-            title=f"{ matchedObj['name'] } (CLASS): TABLE",
-            description=f"See `{ clsTblFileName }` for the full table"
+            title=f"{ matchedObj['name'] } (CLASS): Basics",
+            description=matchedObj["desc"][:2047]
         )
 
-        responses.append(classTableEmbed)
+        # Spell casting
+        if matchedObj["spellcasting_ability"] != "":
+            classDescEmbed.add_field(name="CASTING ABILITY", value=matchedObj["spellcasting_ability"], inline=False)
 
+        clsDesFileName = generateFileName("class-description")
+        clsTblFileName = generateFileName("class-table")
+
+        classDescEmbed.add_field(
+            name="LENGTH OF DESCRIPTION & TABLE TOO LONG FOR DISCORD",
+            value=f"See `{ clsDesFileName }` for full description\nSee `{ clsTblFileName }` for class table",
+            inline=False
+        )
+
+        responses.append(classDescEmbed)
+
+        # Full description as a file
+        descFile = open(clsDesFileName, "a+")
+        descFile.write(matchedObj["desc"])
+        descFile.close()
+        responses.append(clsDesFileName)
+
+        # Class table as a file
         tableFile = open(clsTblFileName, "a+")
         tableFile.write(matchedObj["table"])
         tableFile.close()
-
         responses.append(clsTblFileName)
 
-        # 3rd Embed (DETAILS)
+        # 2nd Embed (DETAILS)
         classDetailsEmbed = discord.Embed(
             colour=discord.Colour.green(),
             title=f"{ matchedObj['name'] } (CLASS): Profs & Details",
@@ -831,7 +808,7 @@ def constructResponse(args, route, matchedObj):
 
         responses.append(classDetailsEmbed)
 
-        # 4th Embed (ARCHETYPES)
+        # 3rd Embed (ARCHETYPES)
         if matchedObj["archetypes"] != []:
 
             for archtype in matchedObj["archetypes"]:
@@ -895,6 +872,8 @@ def constructResponse(args, route, matchedObj):
                 inline=False
             )
 
+            responses.append(magicItemEmbed)
+
             itemFile = open(mIfileName, "a+")
             itemFile.write(matchedObj["desc"])
             itemFile.close()
@@ -907,25 +886,27 @@ def constructResponse(args, route, matchedObj):
                 title=f"{ matchedObj['name'] } (MAGIC ITEM)",
                 description=matchedObj["desc"]
             )
-        
-        magicItemEmbed.add_field(name="TYPE", value=matchedObj["type"], inline=True)
-        magicItemEmbed.add_field(name="RARITY", value=matchedObj["rarity"], inline=True)
+        for response in responses:
+            if isinstance(response, discord.Embed):
+                response.add_field(name="TYPE", value=matchedObj["type"], inline=True)
+                response.add_field(name="RARITY", value=matchedObj["rarity"], inline=True)
 
-        if matchedObj["requires_attunement"] == "requires_attunement":
-            magicItemEmbed.add_field(name="ATTUNEMENT REQUIRED?", value="YES", inline=True)
-        else:
-            magicItemEmbed.add_field(name="ATTUNEMENT REQUIRED?", value="NO", inline=True)
+                if matchedObj["requires_attunement"] == "requires_attunement":
+                    response.add_field(name="ATTUNEMENT REQUIRED?", value="YES", inline=True)
+                else:
+                    response.add_field(name="ATTUNEMENT REQUIRED?", value="NO", inline=True)
 
-        magicItemEmbed.set_thumbnail(url="https://i.imgur.com/2wzBEjB.png")
+                response.set_thumbnail(url="https://i.imgur.com/2wzBEjB.png")
 
-        responses.append(magicItemEmbed)
+                # Remove this break if magicitems produces more than 1 embed in the future
+                break
 
     # Weapon
     elif "weapon" in route:
         weaponEmbed = discord.Embed(
             colour=discord.Colour.green(),
             title=f"{ matchedObj['name'] } (WEAPON)",
-            description=f"PROPERTIES: { ' | '.join(matchedObj['properties']) if matchedObj['properties'] != [] else 'None' }"
+            description=f"**PROPERTIES**: { ' | '.join(matchedObj['properties']) if matchedObj['properties'] != [] else 'None' }"
         )
         weaponEmbed.add_field(
             name="DAMAGE",
@@ -984,10 +965,10 @@ def cleanup():
             if os.path.exists(txtFile):
                 os.remove(txtFile)
 
-                if os.path.exists(txtFile): print(f"ERROR: { txtFile } could not be deleted!")
-                else: print(f"{ txtFile } successfully deleted!\n------")
+                if os.path.exists(txtFile): print(f"WARNING: { txtFile } was not deleted!")
+                else: print(f"SUCCESS: { txtFile } successfully deleted!\n------")
 
-    print("All text files deleted!")
+    print("SUCCESS: All text files deleted!")
 
 ###
 # FUNC NAME: codeError
@@ -1056,7 +1037,7 @@ async def on_ready():
     print(f"Logged in as\n{ bot.user.name }\n{ bot.user.id }\n------")
 
     # Cleanup from last run
-    print("Cleaning up old files...")
+    print("INFO: Cleaning up old files...")
     cleanup()
     print("------")
 
@@ -1093,18 +1074,6 @@ async def search(ctx, *args):
     print("Cleaning up old files...")
     cleanup()
 
-    # Verify we have args
-    if len(args) <= 0:
-        usageEmbed = discord.Embed(
-            colour=discord.Colour.red(),
-            title="No arguments were given. Command requires at least one argument", 
-            description="USAGE: `?search [D&D OBJECT YOU WANT TO SEARCH FOR]`"
-        )
-
-        usageEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
-
-        return await ctx.send(embed=usageEmbed)
-
     # Verify arg length isn't over limits
     if len(args) > 200:
         argumentsEmbed = discord.Embed(
@@ -1117,7 +1086,7 @@ async def search(ctx, *args):
         return await ctx.send(embed=argumentsEmbed)
 
     # Send directory contents if no search term given
-    if len(args) == 1:
+    if len(args) <= 0:
 
         await ctx.send(embed=discord.Embed(
             color=discord.Colour.blue(),
@@ -1209,25 +1178,22 @@ async def search(ctx, *args):
 
             if isinstance(response, discord.Embed):
 
-                # Set a thumbnail for relevent embeds and on successful Scyfall request
+                # Set a thumbnail for relevent embeds and on successful Scyfall request, overwriting all other thumbnail setup
                 image = requestScryfall(args, False)
 
-                if (not isinstance(image, int)): 
-                    
-                    # This overwrites all other thumbnail setup
-                    response.set_thumbnail(url=image)
+                if (not isinstance(image, int)): response.set_thumbnail(url=image)
 
                 # Note partial match in footer of embed
-                if partialMatch == True: 
+                if partialMatch: 
                     response.set_footer(text=f"NOTE: Your search term ({ filteredInput }) was a PARTIAL match to this entity.\nIf this isn't the entity you were expecting, try refining your search term or use ?searchdir instead")
                 else:
                     response.set_footer(text="NOTE: If this isn't the entity you were expecting, try refining your search term or use `?searchdir` instead")
 
-                print("SENDING EMBED...")
+                print(f"SENDING EMBED: { response.title }...")
                 await ctx.send(embed=response)
 
-            if ".txt" in response:
-                print("SENDING FILE...")
+            elif ".txt" in response:
+                print(f"SENDING FILE: { response }...")
                 await ctx.send(file=discord.File(response))
 
     print("DONE!")
@@ -1267,8 +1233,7 @@ async def searchdir(ctx, *args):
         return await ctx.send(embed=usageEmbed)
 
     # Filter the dictionary input
-    # FIXME: This is bugged. Seems to save the variable between commands.
-    filteredDictionary = args[0].lower() + "/"
+    filteredDictionary = f"{ args[0].lower() }/"
 
     # Filter input to remove whitespaces and set lowercase
     filteredInput = "".join(args[1:]).lower()
@@ -1441,23 +1406,20 @@ async def searchdir(ctx, *args):
             
             if isinstance(response, discord.Embed):
 
-                # Set a thumbnail for relevent embeds and on successful Scyfall request.
+                # Set a thumbnail for relevent embeds and on successful Scyfall request, overwrites other thumbnail setup
                 image = requestScryfall(args, True)
 
-                if (not isinstance(image, int)):
-
-                    # This overwrites all other thumbnail setup
-                    response.set_thumbnail(url=image)
+                if (not isinstance(image, int)): response.set_thumbnail(url=image)
 
                 # Note partial match in footer of embed
-                if partialMatch == True: 
-                    response.set_footer(text=f"NOTE: Your search term ({ filteredInput }) was a PARTIAL match to this entity.\nIf this isn't the entity you were expecting, try refining your search term or use `?searchdir` instead")
+                if partialMatch: 
+                    response.set_footer(text=f"NOTE: Your search term ({ filteredInput }) was a PARTIAL match to this entity.\nIf this isn't the entity you were expecting, try refining your search term")
 
-                print("SENDING EMBED...")
+                print(f"SENDING EMBED: { response.title }...")
                 await ctx.send(embed=response)
 
-            if ".txt" in response:
-                print("SENDING FILE...")
+            elif ".txt" in response:
+                print(f"SENDING FILE: { response }...")
                 await ctx.send(file=discord.File(response))
 
     print("DONE!")
