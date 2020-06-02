@@ -90,7 +90,7 @@ def searchResponse(responseResults, filteredInput):
 def requestScryfall(searchTerm, searchdir):
     
     searchPhrase = " ".join(searchTerm)
-    scryfallRequest = requests.get(f"https://api.scryfall.com/cards/search?q={searchPhrase}&include_extras=true&include_multilingual=true&include_variations=true")
+    scryfallRequest = requests.get(f"https://api.scryfall.com/cards/search?q={ searchPhrase }&include_extras=true&include_multilingual=true&include_variations=true")
 
     # Try again with the first arg if nothing was found
     if scryfallRequest.status_code == 404:
@@ -98,7 +98,7 @@ def requestScryfall(searchTerm, searchdir):
         searchWord = searchTerm[0]
         if searchdir == True: searchWord = searchTerm[1]
 
-        scryfallWordRequest = requests.get(f"https://api.scryfall.com/cards/search?q={searchWord}&include_extras=true&include_multilingual=true&include_variations=true")
+        scryfallWordRequest = requests.get(f"https://api.scryfall.com/cards/search?q={ searchWord }&include_extras=true&include_multilingual=true&include_variations=true")
 
         if scryfallWordRequest.status_code != 200: return scryfallWordRequest.status_code
         else: return scryfallWordRequest.json()["data"][0]["image_uris"]["art_crop"]
@@ -141,31 +141,18 @@ def requestOpen5e(query, filteredInput, wideSearch):
             
         if "title" in output:
             resourceRequest = requests.get(
-                "https://api.open5e.com/{}?format=json&limit=10000&{}={}"
-                .format(
-                    route,
-                    filterType,
-                    output["title"].split()[0]
-                )
+                f"https://api.open5e.com/{ route }?format=json&limit=10000&{ filterType }={ output['title'].split()[0] }"
             )
         else:
             resourceRequest = requests.get(
-                "https://api.open5e.com/{}?format=json&limit=10000&{}={}"
-                .format(
-                    route,
-                    filterType,
-                    output["name"].split()[0]
-                )
+                f"https://api.open5e.com/{ route }?format=json&limit=10000&{ filterType }={ output['name'].split()[0] }"
             )
 
         # Return code if not successfull
         if resourceRequest.status_code != 200: 
             return {
                 "code": resourceRequest.status_code,
-                "query": "https://api.open5e.com/{}?format=json&limit=10000&search={}".format(
-                    route,
-                    output["name"].split()[0]
-                )
+                "query": f"https://api.open5e.com/{ route }?format=json&limit=10000&search={ output['name'].split()[0] }"
             }
 
         # Search response again for the actual object
@@ -194,7 +181,7 @@ def constructResponse(args, route, matchedObj):
         if len(matchedObj["desc"]) >= 2048:
             documentEmbed = discord.Embed(
                 colour=discord.Colour.green(),
-                title="{} (DOCUMENT)".format(matchedObj["title"]), 
+                title=f"{ matchedObj['title'] } (DOCUMENT)", 
                 description=matchedObj["desc"][:2047]
             )
             documentEmbed.add_field(name="Description Continued...", value=matchedObj["desc"][2048:])
@@ -220,7 +207,7 @@ def constructResponse(args, route, matchedObj):
         if len(matchedObj["desc"]) >= 2048:
             spellEmbed = discord.Embed(
                 colour=discord.Colour.green(),
-                title="{} (SPELL)".format(matchedObj["name"]), 
+                title=f"{ matchedObj['name'] } (SPELL)", 
                 description=matchedObj["desc"][:2047]
             )
             spellEmbed.add_field(name="Description Continued...", value=matchedObj["desc"][2048:], inline=False)
@@ -254,7 +241,7 @@ def constructResponse(args, route, matchedObj):
         ## 1ST EMBED ##
         monsterEmbedBasics = discord.Embed(
             colour=discord.Colour.green(),
-            title="{} (MONSTER): BASIC STATS".format(matchedObj["name"]), 
+            title=f"{ matchedObj['name'] } (MONSTER): BASIC STATS", 
             description="**TYPE**: {}\n**SUBTYPE**: {}\n**ALIGNMENT**: {}\n**SIZE**: {}\n**CHALLENGE RATING**: {}".format(
                 matchedObj["type"] if matchedObj["type"] != "" else "None", 
                 matchedObj["subtype"] if matchedObj["subtype"] != "" else "None", 
@@ -268,16 +255,13 @@ def constructResponse(args, route, matchedObj):
         if matchedObj["strength_save"] != None:
             monsterEmbedBasics.add_field(
                 name="STRENGTH",
-                value="**{}** (SAVE: **{}**)".format(
-                    matchedObj["strength"],
-                    matchedObj["strength_save"]
-                ),
+                value=f"**{ matchedObj['strength'] }** (SAVE: **{ matchedObj['strength_save'] }**)",
                 inline=True
             )
         else:
             monsterEmbedBasics.add_field(
                 name="STRENGTH",
-                value="**{}**".format(matchedObj["strength"]),
+                value=f"**{ matchedObj['strength'] }**",
                 inline=True
             )
 
@@ -285,16 +269,13 @@ def constructResponse(args, route, matchedObj):
         if matchedObj["dexterity_save"] != None:
             monsterEmbedBasics.add_field(
                 name="DEXTERITY",
-                value="**{}** (SAVE: **{}**)".format(
-                    matchedObj["dexterity"],
-                    matchedObj["dexterity_save"]
-                ),
+                value=f"**{matchedObj['dexterity']}** (SAVE: **{ matchedObj['dexterity_save'] }**)",
                 inline=True
             )
         else:
             monsterEmbedBasics.add_field(
                 name="DEXTERITY",
-                value="**{}**".format(matchedObj["dexterity"]),
+                value=f"**{ matchedObj['dexterity'] }**",
                 inline=True
             )
 
@@ -302,16 +283,13 @@ def constructResponse(args, route, matchedObj):
         if matchedObj["constitution_save"] != None:
             monsterEmbedBasics.add_field(
                 name="CONSTITUTION",
-                value="**{}** (SAVE: **{}**)".format(
-                    matchedObj["constitution"],
-                    matchedObj["constitution_save"]
-                ),
+                value=f"**{ matchedObj['constitution'] }** (SAVE: **{ matchedObj['constitution_save'] }**)",
                 inline=True
             )
         else:
             monsterEmbedBasics.add_field(
                 name="CONSTITUTION",
-                value="**{}**".format(matchedObj["constitution"]),
+                value=f"**{ matchedObj['constitution'] }**",
                 inline=True
             )
 
@@ -319,16 +297,13 @@ def constructResponse(args, route, matchedObj):
         if matchedObj["intelligence_save"] != None:
             monsterEmbedBasics.add_field(
                 name="INTELLIGENCE",
-                value="**{}** (SAVE: **{}**)".format(
-                    matchedObj["intelligence"],
-                    matchedObj["intelligence_save"]
-                ),
+                value=f"**{ matchedObj['intelligence'] }** (SAVE: **{ matchedObj['intelligence_save'] }**)",
                 inline=True
             )
         else:
             monsterEmbedBasics.add_field(
                 name="INTELLIGENCE",
-                value="**{}**".format(matchedObj["intelligence"]),
+                value=f"**{ matchedObj['intelligence'] }**",
                 inline=True
             )
 
@@ -336,16 +311,13 @@ def constructResponse(args, route, matchedObj):
         if matchedObj["wisdom_save"] != None:
             monsterEmbedBasics.add_field(
                 name="WISDOM",
-                value="**{}** (SAVE: **{}**)".format(
-                    matchedObj["wisdom"],
-                    matchedObj["wisdom_save"]
-                ),
+                value=f"**{ matchedObj['wisdom'] }** (SAVE: **{ matchedObj['wisdom_save'] }**)",
                 inline=True
             )
         else:
             monsterEmbedBasics.add_field(
                 name="WISDOM",
-                value="**{}**".format(matchedObj["wisdom"]),
+                value=f"**{ matchedObj['wisdom'] }**",
                 inline=True
             )
 
@@ -353,22 +325,19 @@ def constructResponse(args, route, matchedObj):
         if matchedObj["charisma_save"] != None:
             monsterEmbedBasics.add_field(
                 name="CHARISMA",
-                value="**{}** (SAVE: **{}**)".format(
-                    matchedObj["charisma"],
-                    matchedObj["charisma_save"]
-                ),
+                value=f"**{ matchedObj['charisma'] }** (SAVE: **{ matchedObj['charisma_save'] }**)",
                 inline=True
             )
         else:
             monsterEmbedBasics.add_field(
                 name="CHARISMA",
-                value="**{}**".format(matchedObj["charisma"]),
+                value=f"**{ matchedObj['charisma'] }**",
                 inline=True
             )
 
         # Hit points/dice
         monsterEmbedBasics.add_field(
-            name="HIT POINTS ({})".format(str(matchedObj["hit_points"])), 
+            name=f"HIT POINTS ({ str(matchedObj['hit_points']) })", 
             value=matchedObj["hit_dice"], 
             inline=True
         )
@@ -376,13 +345,13 @@ def constructResponse(args, route, matchedObj):
         # Speeds
         monsterSpeeds = ""
         for speed in matchedObj["speed"].items(): 
-            monsterSpeeds += "**{}**: {}\n".format(speed[0].upper(), str(speed[1]))
+            monsterSpeeds += f"**{ speed[0].upper() }**: { str(speed[1]) }\n"
         monsterEmbedBasics.add_field(name="SPEED", value=monsterSpeeds, inline=True)
 
         # Armour
         monsterEmbedBasics.add_field(
             name="ARMOUR CLASS", 
-            value="{} ({})".format(str(matchedObj["armor_class"]), matchedObj["armor_desc"]),
+            value=f"{ str(matchedObj['armor_class']) } ({ matchedObj['armor_desc'] })",
             inline=True
         )
 
@@ -391,14 +360,14 @@ def constructResponse(args, route, matchedObj):
         ## 2ND EMBED ##
         monsterEmbedSkills = discord.Embed(
             colour=discord.Colour.green(),
-            title="{} (MONSTER): SKILLS & PROFICIENCIES".format(matchedObj["name"])
+            title=f"{ matchedObj['name'] } (MONSTER): SKILLS & PROFICIENCIES"
         )
 
         # Skills & Perception
         if matchedObj["skills"] != {} and matchedObj["perception"] != None:
             monsterSkills = ""
             for skill in matchedObj["skills"].items(): 
-                monsterSkills += "**{}**: {}\n".format(skill[0].upper(), str(skill[1]))
+                monsterSkills += f"**{ skill[0].upper() }**: { str(skill[1]) }\n"
             monsterEmbedSkills.add_field(name="SKILLS", value=monsterSkills, inline=True)
 
         elif matchedObj["perception"] != None:
@@ -429,7 +398,7 @@ def constructResponse(args, route, matchedObj):
         ## 3RD EMBED ##
         monsterEmbedActions = discord.Embed(
             colour=discord.Colour.green(),
-            title="{} (MONSTER): ACTIONS AND ABILITIES".format(matchedObj["name"])
+            title=f"{ matchedObj['name'] } (MONSTER): ACTIONS AND ABILITIES"
         )
 
         # Actions
@@ -467,7 +436,7 @@ def constructResponse(args, route, matchedObj):
 
                 monsterEmbedActions.add_field(
                     name=spellSplit[-1].upper(),
-                    value="To see spell info, `?searchdir SPELLS {}`".format(spellSplit[-1].upper()),
+                    value=f"To see spell info, `?searchdir SPELLS { spellSplit[-1].upper() }`",
                     inline=False
                 )
 
@@ -477,7 +446,7 @@ def constructResponse(args, route, matchedObj):
         if matchedObj["legendary_desc"] != "":
             monsterEmbedLegend = discord.Embed(
                 colour=discord.Colour.green(),
-                title="{} (MONSTER): LEGENDARY ACTIONS AND ABILITIES".format(matchedObj["name"]),
+                title=f"{ matchedObj['name'] } (MONSTER): LEGENDARY ACTIONS AND ABILITIES",
                 description=matchedObj["legendary_desc"]
             )
 
@@ -501,22 +470,21 @@ def constructResponse(args, route, matchedObj):
         # 1st Embed (Basics)
         backgroundEmbed = discord.Embed(
             colour=discord.Colour.green(),
-            title="{} (BACKGROUND): BASICS".format(matchedObj["name"]),
+            title=f"{ matchedObj['name'] } (BACKGROUND): BASICS",
             description=matchedObj["desc"]
         )
 
         # Profs
         if matchedObj["tool_proficiencies"] != None: 
-            backgroundEmbed.add_field(name="PROFICIENCIES", value="**SKILL**: {}\n**TOOL**: {}".format(
-                matchedObj["skill_proficiencies"],
-                matchedObj["tool_proficiencies"]
-                ),
+            backgroundEmbed.add_field(
+                name="PROFICIENCIES", 
+                value=f"**SKILL**: { matchedObj['skill_proficiencies'] }\n**TOOL**: { matchedObj['tool_proficiencies'] }",
                 inline=True
             )
         else:
-            backgroundEmbed.add_field(name="PROFICIENCIES", value="**SKILL**: {}".format(
-                matchedObj["skill_proficiencies"]
-                ),
+            backgroundEmbed.add_field(
+                name="PROFICIENCIES",
+                value=f"**SKILL**: { matchedObj['skill_proficiencies'] }",
                 inline=True
             )
 
@@ -535,7 +503,7 @@ def constructResponse(args, route, matchedObj):
         # 2nd Embed (feature)
         backgroundFeatureEmbed = discord.Embed(
             colour=discord.Colour.green(),
-            title="{} (BACKGROUND)\nFEATURE ({})".format(matchedObj["name"], matchedObj["feature"].upper()),
+            title=f"{ matchedObj['name'] } (BACKGROUND)\nFEATURE ({ matchedObj['feature'].upper() })",
             description=matchedObj["feature_desc"]
         )
 
@@ -548,7 +516,7 @@ def constructResponse(args, route, matchedObj):
 
                 backgroundChars = discord.Embed(
                     colour=discord.Colour.green(),
-                    title="{} (BACKGROUND): CHARECTERISTICS".format(matchedObj["name"]),
+                    title=f"{ matchedObj['name'] } (BACKGROUND): CHARECTERISTICS",
                     description=matchedObj["suggested_characteristics"]
                 )
 
@@ -557,7 +525,7 @@ def constructResponse(args, route, matchedObj):
             else:
                 backgroundChars = discord.Embed(
                     colour=discord.Colour.green(),
-                    title="{} (BACKGROUND): CHARECTERISTICS".format(matchedObj["name"]),
+                    title=f"{ matchedObj['name'] } (BACKGROUND): CHARECTERISTICS",
                     description=matchedObj["suggested_characteristics"][:2047]
                 )
 
@@ -565,7 +533,7 @@ def constructResponse(args, route, matchedObj):
 
                 backgroundChars.add_field(
                     name="LENGTH OF CHARECTERISTICS TOO LONG FOR DISCORD",
-                    value="See `{}` for full description".format(bckFileName),
+                    value=f"See `{ bckFileName }` for full description",
                     inline=False
                 )
 
@@ -586,7 +554,7 @@ def constructResponse(args, route, matchedObj):
     elif "plane" in route:
         planeEmbed = discord.Embed(
             colour=discord.Colour.green(),
-            title="{} (PLANE)".format(matchedObj["name"]),
+            title=f"{ matchedObj['name'] } (PLANE)",
             description=matchedObj["desc"]
         )
 
@@ -686,8 +654,8 @@ def constructResponse(args, route, matchedObj):
     elif "feat" in route:
         featEmbed = discord.Embed(
             colour=discord.Colour.green(),
-            title="{} (FEAT)".format(matchedObj["name"]),
-            description="PREREQUISITES: {}".format(matchedObj["prerequisite"])
+            title=f"{ matchedObj['name'] } (FEAT)",
+            description=f"PREREQUISITES: { matchedObj['prerequisite'] }"
         )
         featEmbed.add_field(name="DESCRIPTION", value=matchedObj["desc"], inline=False)
         featEmbed.set_thumbnail(url="https://i.imgur.com/X1l7Aif.jpg")
@@ -700,7 +668,7 @@ def constructResponse(args, route, matchedObj):
         if len(matchedObj["desc"]) > 2048:
             conditionEmbed = discord.Embed(
                 colour=discord.Colour.green(),
-                title="{} (CONDITION)".format(matchedObj["name"]),
+                title=f"{ matchedObj['name'] } (CONDITION)",
                 description=matchedObj["desc"][:2047]
             )
             conditionEmbed.add_field(name="DESCRIPTION continued...", value=matchedObj["desc"][2048:], inline=False)
@@ -708,7 +676,7 @@ def constructResponse(args, route, matchedObj):
         else:
             conditionEmbed = discord.Embed(
                 colour=discord.Colour.green(),
-                title="{} (CONDITION)".format(matchedObj["name"]),
+                title=f"{ matchedObj['name'] } (CONDITION)",
                 description=matchedObj["desc"]
             )
         conditionEmbed.set_thumbnail(url="https://i.imgur.com/tOdL5n3.jpg")
@@ -720,7 +688,7 @@ def constructResponse(args, route, matchedObj):
 
         raceEmbed = discord.Embed(
             colour=discord.Colour.green(),
-            title="{} (RACE)".format(matchedObj["name"]),
+            title=f"{ matchedObj['name'] } (RACE)",
             description=matchedObj["desc"]
         )
 
@@ -761,7 +729,7 @@ def constructResponse(args, route, matchedObj):
 
                 subraceEmbed = discord.Embed(
                     colour=discord.Colour.green(),
-                    title="{} (SUBRACE OF {})".format(subrace["name"], matchedObj["name"]),
+                    title=f"{ subrace['name'] } (SUBRACE OF { matchedObj['name'] })",
                     description=subrace["desc"]
                 )
 
@@ -787,7 +755,7 @@ def constructResponse(args, route, matchedObj):
         if len(matchedObj["desc"]) < 2047:
             classDescEmbed = discord.Embed(
                 colour=discord.Colour.green(),
-                title="{} (CLASS)".format(matchedObj["name"]),
+                title=f"{ matchedObj['name'] } (CLASS)",
                 description=matchedObj["desc"]
             )
 
@@ -800,7 +768,7 @@ def constructResponse(args, route, matchedObj):
         else:
             classDescEmbed = discord.Embed(
                 colour=discord.Colour.green(),
-                title="{} (CLASS): Basics".format(matchedObj["name"]),
+                title=f"{ matchedObj['name'] } (CLASS): Basics",
                 description=matchedObj["desc"][:2047]
             )
 
@@ -812,7 +780,7 @@ def constructResponse(args, route, matchedObj):
 
             classDescEmbed.add_field(
                 name="LENGTH OF DESCRIPTION TOO LONG FOR DISCORD",
-                value="See `{}` for full description".format(clsDesFileName),
+                value=f"See `{ clsDesFileName }` for full description",
                 inline=False
             )
 
@@ -829,8 +797,8 @@ def constructResponse(args, route, matchedObj):
 
         classTableEmbed = discord.Embed(
             colour=discord.Colour.green(),
-            title="{} (CLASS): TABLE".format(matchedObj["name"]),
-            description="See `{}` for the full table".format(clsTblFileName)
+            title=f"{ matchedObj['name'] } (CLASS): TABLE",
+            description=f"See `{ clsTblFileName }` for the full table"
         )
 
         responses.append(classTableEmbed)
@@ -844,23 +812,13 @@ def constructResponse(args, route, matchedObj):
         # 3rd Embed (DETAILS)
         classDetailsEmbed = discord.Embed(
             colour=discord.Colour.green(),
-            title="{} (CLASS): Profs & Details".format(matchedObj["name"]),
-            description="**ARMOUR**: {}\n**WEAPONS**: {}\n**TOOLS**: {}\n**SAVE THROWS**: {}\n**SKILLS**: {}".format(
-                matchedObj["prof_armor"],
-                matchedObj["prof_weapons"],
-                matchedObj["prof_tools"],
-                matchedObj["prof_saving_throws"],
-                matchedObj["prof_skills"]
-            )
+            title=f"{ matchedObj['name'] } (CLASS): Profs & Details",
+            description=f"**ARMOUR**: { matchedObj['prof_armor'] }\n**WEAPONS**: { matchedObj['prof_weapons'] }\n**TOOLS**: { matchedObj['prof_tools'] }\n**SAVE THROWS**: { matchedObj['prof_saving_throws'] }\n**SKILLS**: { matchedObj['prof_skills'] }"
         )
 
         classDetailsEmbed.add_field(
             name="Hit points",
-            value="**Hit Dice**: {}\n**HP at first level**: {}\n**HP at other levels**: {}".format(
-                matchedObj["hit_dice"],
-                matchedObj["hp_at_1st_level"],
-                matchedObj["hp_at_higher_levels"]
-            ),
+            value=f"**Hit Dice**: { matchedObj['hit_dice'] }\n**HP at first level**: { matchedObj['hp_at_1st_level'] }\n**HP at other levels**: { matchedObj['hp_at_higher_levels'] }",
             inline=False
         )
 
@@ -884,7 +842,7 @@ def constructResponse(args, route, matchedObj):
 
                     archTypeEmbed = discord.Embed(
                         colour=discord.Colour.green(),
-                        title="{} (ARCHETYPES)".format(archtype["name"]),
+                        title=f"{ archtype['name'] } (ARCHETYPES)",
                         description=archtype["desc"]
                     )
 
@@ -894,10 +852,7 @@ def constructResponse(args, route, matchedObj):
 
                     archTypeEmbed = discord.Embed(
                         colour=discord.Colour.green(),
-                        title="{} (ARCHETYPES)\n{} (SUBTYPE)".format(
-                            archtype["name"],
-                            matchedObj["subtypes_name"] if matchedObj["subtypes_name"] != "" else "None"
-                        ),
+                        title=f"{ archtype['name'] } (ARCHETYPES)\n{ matchedObj['subtypes_name'] if matchedObj['subtypes_name'] != '' else 'None' } (SUBTYPE)",
                         description=archtype["desc"][:2047]
                     )
 
@@ -905,7 +860,7 @@ def constructResponse(args, route, matchedObj):
 
                     archTypeEmbed.add_field(
                         name="LENGTH OF DESCRIPTION TOO LONG FOR DISCORD",
-                        value="See `{}` for full description".format(clsArchFileName),
+                        value=f"See `{ clsArchFileName }` for full description",
                         inline=False
                     )
 
@@ -928,7 +883,7 @@ def constructResponse(args, route, matchedObj):
         if len(matchedObj["desc"]) > 2047:
             magicItemEmbed = discord.Embed(
                 colour=discord.Colour.green(),
-                title="{} (MAGIC ITEM)".format(matchedObj["name"]),
+                title=f"{ matchedObj['name'] } (MAGIC ITEM)",
                 description=matchedObj["desc"][:2047]
             )
 
@@ -936,7 +891,7 @@ def constructResponse(args, route, matchedObj):
 
             magicItemEmbed.add_field(
                 name="LENGTH OF DESCRIPTION TOO LONG FOR DISCORD",
-                value="See `{}` for full description".format(mIfileName),
+                value=f"See `{ mIfileName }` for full description",
                 inline=False
             )
 
@@ -949,7 +904,7 @@ def constructResponse(args, route, matchedObj):
         else:
             magicItemEmbed = discord.Embed(
                 colour=discord.Colour.green(),
-                title="{} (MAGIC ITEM)".format(matchedObj["name"]),
+                title=f"{ matchedObj['name'] } (MAGIC ITEM)",
                 description=matchedObj["desc"]
             )
         
@@ -969,16 +924,12 @@ def constructResponse(args, route, matchedObj):
     elif "weapon" in route:
         weaponEmbed = discord.Embed(
             colour=discord.Colour.green(),
-            title="{} (WEAPON)".format(matchedObj["name"]),
-            description="PROPERTIES: {}".format(
-                " | ".join(matchedObj["properties"]) if matchedObj["properties"] != [] else "None"
-            )
+            title=f"{ matchedObj['name'] } (WEAPON)",
+            description=f"PROPERTIES: { ' | '.join(matchedObj['properties']) if matchedObj['properties'] != [] else 'None' }"
         )
         weaponEmbed.add_field(
             name="DAMAGE",
-            value="{} ({})".format(
-                matchedObj["damage_dice"], matchedObj["damage_type"]
-            ),
+            value=f"{ matchedObj['damage_dice'] } ({ matchedObj['damage_type'] })",
             inline=True
         )
 
@@ -1003,9 +954,7 @@ def constructResponse(args, route, matchedObj):
         noRouteEmbed = discord.Embed(
             colour=discord.Colour.red(),
             title="The matched item's type (i.e. spell, monster, etc) was not recognised",
-            description="Please create an issue describing this failure and with the following values at https://github.com/shadowedlucario/oghma/issues\n**Input**: {}\n**Route**: {}\n**Troublesome Object**: SEE `{}`".format(
-                args, route, badObjectFilename
-            )
+            description=f"Please create an issue describing this failure and with the following values at https://github.com/shadowedlucario/oghma/issues\n**Input**: { args }\n**Route**: { route }\n**Troublesome Object**: SEE `{ badObjectFilename }`"
         )
         noRouteEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
         
@@ -1019,7 +968,7 @@ def constructResponse(args, route, matchedObj):
 # FUNC DESC: Generates a filename using type of file and random number
 # FUNC TYPE: Function
 ###
-def generateFileName(fileType): return "{}-{}.txt".format(fileType, str(random.randrange(1,1000000)))
+def generateFileName(fileType): return f"{ fileType }-{ str(random.randrange(1,1000000)) }.txt"
 
 ###
 # FUNC NAME: cleanup
@@ -1030,13 +979,13 @@ def cleanup():
     for txtFile in os.listdir():
 
         if ".txt" in txtFile:
-            print("Trying to clean {}".format(txtFile))
+            print(f"Trying to clean { txtFile }")
 
             if os.path.exists(txtFile):
                 os.remove(txtFile)
 
-                if os.path.exists(txtFile): print("ERROR: {} could not be deleted!".format(txtFile))
-                else: print("{} successfully deleted!\n------".format(txtFile))
+                if os.path.exists(txtFile): print(f"ERROR: { txtFile } could not be deleted!")
+                else: print(f"{ txtFile } successfully deleted!\n------")
 
     print("All text files deleted!")
 
@@ -1048,8 +997,8 @@ def cleanup():
 def codeError(statusCode, query):
     codeEmbed = discord.Embed(
         colour=discord.Colour.red(),
-        title="ERROR - API Request FAILED. Status Code: **{}**".format(str(statusCode)), 
-        description="Query: {}".format(query)
+        title=f"ERROR - API Request FAILED. Status Code: **{ str(statusCode) }**", 
+        description=f"Query: { query }"
     )
         
     codeEmbed.add_field(
@@ -1104,7 +1053,7 @@ async def on_command_error(ctx, error):
 ###
 @bot.event
 async def on_ready():
-    print("Logged in as\n{}\n{}\n------".format(bot.user.name, bot.user.id))
+    print(f"Logged in as\n{ bot.user.name }\n{ bot.user.id }\n------")
 
     # Cleanup from last run
     print("Cleaning up old files...")
@@ -1192,16 +1141,16 @@ async def search(ctx, *args):
         entityFile = open(entityFileName, "a+")
         for entity in directoryRequest.json()["results"]:
             if "title" in entity.keys():
-                entityFile.write("{}\n".format(entity["title"]))
+                entityFile.write(f"{ entity['title'] }\n")
             else:
-                entityFile.write("{}\n".format(entity["name"]))
+                entityFile.write(f"{ entity['name'] }\n")
 
         entityFile.close()
 
         # Send embed notifying start of the spam stream
         detailsEmbed = discord.Embed(
             colour=discord.Colour.orange(),
-            title="See `{}` for all searchable entities in this endpoint".format(entityFileName), 
+            title=f"See `{ entityFileName }` for all searchable entities in this endpoint", 
             description="Due to discord charecter limits regarding embeds, the results have to be sent in a file. Yes I know this is far from ideal but it's the best I can do!"
         )
 
@@ -1218,12 +1167,12 @@ async def search(ctx, *args):
     # Search API
     await ctx.send(embed=discord.Embed(
         color=discord.Colour.blue(),
-        title="SEARCHING ALL ENDPOINTS FOR {}...".format(args),
+        title=f"SEARCHING ALL ENDPOINTS FOR { filteredInput }...",
         description="WARNING: This may take a while!"
     ))
     
     # Use first word to narrow search results down for quicker response on some directories
-    match = requestOpen5e("https://api.open5e.com/search/?format=json&limit=10000&text={}".format(str(args[0])), filteredInput, True)
+    match = requestOpen5e(f"https://api.open5e.com/search/?format=json&limit=10000&text={ str(args[0]) }", filteredInput, True)
 
     # An API Request failed
     if isinstance(match, dict) and "code" in match.keys():
@@ -1246,7 +1195,7 @@ async def search(ctx, *args):
         noMatchEmbed = discord.Embed(
             colour=discord.Colour.orange(),
             title="ERROR", 
-            description="No matches found for **{}** in the search endpoint".format(filteredInput)
+            description=f"No matches found for **{ filteredInput }** in the search endpoint"
         )
 
         noMatchEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
@@ -1270,14 +1219,14 @@ async def search(ctx, *args):
 
                 # Note partial match in footer of embed
                 if partialMatch == True: 
-                    response.set_footer(text="NOTE: Your search term ({}) was a PARTIAL match to this entity.\nIf this isn't the entity you were expecting, try refining your search term or use ?searchdir instead".format(filteredInput))
+                    response.set_footer(text=f"NOTE: Your search term ({ filteredInput }) was a PARTIAL match to this entity.\nIf this isn't the entity you were expecting, try refining your search term or use ?searchdir instead")
                 else:
                     response.set_footer(text="NOTE: If this isn't the entity you were expecting, try refining your search term or use `?searchdir` instead")
 
                 print("SENDING EMBED...")
                 await ctx.send(embed=response)
 
-            elif ".txt" in response:
+            if ".txt" in response:
                 print("SENDING FILE...")
                 await ctx.send(file=discord.File(response))
 
@@ -1351,8 +1300,8 @@ async def searchdir(ctx, *args):
 
         noResourceEmbed = discord.Embed(
             colour=discord.Colour.orange(),
-            title="Requested Directory (`{}`) is not a valid directory name".format(str(args[0])), 
-            description="**Available Directories**\n{}".format(", ".join(directories))
+            title=f"Requested Directory (`{ str(args[0]) }`) is not a valid directory name", 
+            description=f"**Available Directories**\n{ ', '.join(directories) }"
         )
 
         noResourceEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
@@ -1364,17 +1313,17 @@ async def searchdir(ctx, *args):
 
         await ctx.send(embed=discord.Embed(
             color=discord.Colour.blue(),
-            title="GETTING ALL SEARCHABLE ENTITIES IN {} ENDPOINT...".format(filteredDictionary.upper()),
+            title=f"GETTING ALL SEARCHABLE ENTITIES IN { filteredDictionary.upper() } ENDPOINT...",
             description="WARNING: This may take a while!"
         ))
 
         # Get objects from directory, store in txt file
-        directoryRequest = requests.get("https://api.open5e.com/{}?format=json&limit=10000".format(filteredDictionary))
+        directoryRequest = requests.get(f"https://api.open5e.com/{ filteredDictionary }?format=json&limit=10000")
 
         if directoryRequest.status_code != 200: 
             return await ctx.send(embed=codeError(
                 directoryRequest.status_code,
-                "https://api.open5e.com/{}?format=json&limit=10000".format(filteredDictionary)
+                f"https://api.open5e.com/{ filteredDictionary }?format=json&limit=10000"
                 )
             )
 
@@ -1408,7 +1357,7 @@ async def searchdir(ctx, *args):
         # Send embed notifying start of the spam stream
         detailsEmbed = discord.Embed(
             colour=discord.Colour.orange(),
-            title="See `{}` for all searchable entities in this endpoint".format(entityDirFileName), 
+            title=f"See `{ entityDirFileName }` for all searchable entities in this endpoint", 
             description="Due to discord charecter limits regarding embeds, the results have to be sent in a file. Yes I know this is far from ideal but it's the best I can do!"
         )
 
@@ -1430,8 +1379,8 @@ async def searchdir(ctx, *args):
 
         searchEmbed = discord.Embed(
             colour=discord.Colour.orange(),
-            title="Requested Directory (`{}`) is not a valid directory name".format(str(args[0])), 
-            description="**Available Directories**\n{}".format(", ".join(directories))
+            title=f"Requested Directory (`{ str(args[0]) }`) is not a valid directory name", 
+            description=f"**Available Directories**\n{ ', '.join(directories) }"
         )
 
         searchEmbed.add_field(name="NOTE", value="Use `?search` for searching the `search/` directory. This has been done to cut down on parsing errors.")
@@ -1442,7 +1391,7 @@ async def searchdir(ctx, *args):
     # Search API
     await ctx.send(embed=discord.Embed(
         color=discord.Colour.blue(),
-        title="SEARCHING {} ENDPOINT FOR {}...".format(filteredDictionary.upper(), args),
+        title=f"SEARCHING { filteredDictionary.upper() } ENDPOINT FOR { filteredInput }...",
         description="WARNING: This may take a while!"
     ))
     
@@ -1452,11 +1401,7 @@ async def searchdir(ctx, *args):
 
     # Use first word to narrow search results down for quicker response on some directories
     match = requestOpen5e(
-        "https://api.open5e.com/{}?format=json&limit=10000&{}={}".format(
-            filteredDictionary,
-            filterType,
-            str(args[1])
-        ),
+        f"https://api.open5e.com/{ filteredDictionary }?format=json&limit=10000&{ filterType }={ str(args[1]) }",
         filteredInput,
         False
     )
@@ -1482,7 +1427,7 @@ async def searchdir(ctx, *args):
         noMatchEmbed = discord.Embed(
             colour=discord.Colour.orange(),
             title="ERROR", 
-            description="No matches found for **{}** in the {} endpoint".format(filteredInput.upper(), filteredDictionary)
+            description=f"No matches found for **{ filteredInput.upper() }** in the { filteredDictionary } endpoint"
         )
 
         noMatchEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
@@ -1506,12 +1451,12 @@ async def searchdir(ctx, *args):
 
                 # Note partial match in footer of embed
                 if partialMatch == True: 
-                    response.set_footer(text="NOTE: Your search term ({}) was a PARTIAL match to this entity.\nIf this isn't the entity you were expecting, try refining your search term or use `?searchdir` instead".format(filteredInput))
+                    response.set_footer(text=f"NOTE: Your search term ({ filteredInput }) was a PARTIAL match to this entity.\nIf this isn't the entity you were expecting, try refining your search term or use `?searchdir` instead")
 
                 print("SENDING EMBED...")
                 await ctx.send(embed=response)
 
-            elif ".txt" in response:
+            if ".txt" in response:
                 print("SENDING FILE...")
                 await ctx.send(file=discord.File(response))
 
