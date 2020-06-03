@@ -17,7 +17,6 @@ load_dotenv()
 
 ### GLOBALS ###
 botName = "Oghma"
-TOKEN = os.getenv('BOT_TOKEN')
 bot = commands.Bot(command_prefix='?')
 client = discord.Client()
 
@@ -1424,4 +1423,4 @@ async def searchdir(ctx, *args):
 
     print("DONE!")
 
-bot.run(TOKEN)
+bot.run(os.environ['BOT_KEY'])
