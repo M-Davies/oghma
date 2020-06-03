@@ -514,7 +514,7 @@ def constructResponse(args, route, matchedObj):
         # 3rd Embed & File (suggested characteristics)
         if matchedObj["suggested_characteristics"] != None:
 
-            if len(matchedObj["suggested_characteristics"]) < 2048:
+            if len(matchedObj["suggested_characteristics"]) <= 2047:
 
                 backgroundChars = discord.Embed(
                     colour=discord.Colour.green(),
@@ -666,7 +666,7 @@ def constructResponse(args, route, matchedObj):
     # Condition
     elif "condition" in route:
 
-        if len(matchedObj["desc"]) > 2048:
+        if len(matchedObj["desc"]) >= 2048:
             conditionEmbed = discord.Embed(
                 colour=discord.Colour.green(),
                 title=f"{ matchedObj['name'] } (CONDITION)",
@@ -714,7 +714,7 @@ def constructResponse(args, route, matchedObj):
         # Traits
         if matchedObj["traits"] != "":
 
-            if len(matchedObj["traits"]) > 1024:
+            if len(matchedObj["traits"]) >= 1024:
                 raceEmbed.add_field(name="TRAITS", value=matchedObj["traits"][:1023], inline=False)
                 raceEmbed.add_field(name="TRAITS continued...", value=matchedObj["traits"][1024:], inline=False)
             else:
@@ -740,7 +740,7 @@ def constructResponse(args, route, matchedObj):
                 # Subrace traits
                 if subrace["traits"] != "":
 
-                    if len(subrace["traits"]) > 1024:
+                    if len(subrace["traits"]) >= 1024:
                         subraceEmbed.add_field(name="TRAITS", value=subrace["traits"][:1023], inline=False)
                         subraceEmbed.add_field(name="TRAITS continued...", value=subrace["traits"][1024:], inline=False)
                     else:
@@ -800,7 +800,7 @@ def constructResponse(args, route, matchedObj):
         )
 
         # Equipment
-        if len(matchedObj["equipment"]) > 1023:
+        if len(matchedObj["equipment"]) >= 1024:
             classDetailsEmbed.add_field(name="EQUIPMENT", value=matchedObj["equipment"][:1023], inline=False)
             classDetailsEmbed.add_field(name="EQUIPMENT continued", value=matchedObj["equipment"][1024:], inline=False)
         else:
@@ -815,7 +815,7 @@ def constructResponse(args, route, matchedObj):
 
                 archTypeEmbed = None
 
-                if len(archtype["desc"]) < 2047:
+                if len(archtype["desc"]) <= 2047:
 
                     archTypeEmbed = discord.Embed(
                         colour=discord.Colour.green(),
@@ -857,7 +857,7 @@ def constructResponse(args, route, matchedObj):
     # Magic Item
     elif "magicitem" in route:
 
-        if len(matchedObj["desc"]) > 2047:
+        if len(matchedObj["desc"]) >= 2048:
             magicItemEmbed = discord.Embed(
                 colour=discord.Colour.green(),
                 title=f"{ matchedObj['name'] } (MAGIC ITEM)",
@@ -1075,7 +1075,7 @@ async def search(ctx, *args):
     cleanup()
 
     # Verify arg length isn't over limits
-    if len(args) > 200:
+    if len(args) >= 201:
         argumentsEmbed = discord.Embed(
             color=discord.Colour.red(),
             title="Invalid argument length",
@@ -1246,7 +1246,7 @@ async def searchdir(ctx, *args):
         return await ctx.send(embed=codeError(rootRequest.status_code, "https://api.open5e.com?format=json"))
 
     # Verify arg length isn't over limits
-    if len(args) > 200:
+    if len(args) >= 201:
         argumentsEmbed = discord.Embed(
             color=discord.Colour.red(),
             title="Invalid argument length",
