@@ -762,8 +762,8 @@ def constructResponse(args, route, matchedObj):
         if matchedObj["spellcasting_ability"] != "":
             classDescEmbed.add_field(name="CASTING ABILITY", value=matchedObj["spellcasting_ability"], inline=False)
 
-        clsDesFileName = generateFileName("class-description")
-        clsTblFileName = generateFileName("class-table")
+        clsDesFileName = generateFileName("clsdescription")
+        clsTblFileName = generateFileName("clstable")
 
         classDescEmbed.add_field(
             name="LENGTH OF DESCRIPTION & TABLE TOO LONG FOR DISCORD",
@@ -832,7 +832,7 @@ def constructResponse(args, route, matchedObj):
                         description=archtype["desc"][:2047]
                     )
 
-                    clsArchFileName = generateFileName("class-archetype")
+                    clsArchFileName = generateFileName("clsarchetype")
 
                     archTypeEmbed.add_field(
                         name="LENGTH OF DESCRIPTION TOO LONG FOR DISCORD",
@@ -925,7 +925,7 @@ def constructResponse(args, route, matchedObj):
         global partialMatch
         partialMatch = False
 
-        badObjectFilename = generateFileName("bad-object")
+        badObjectFilename = generateFileName("badobject")
 
         itemFile = open(badObjectFilename, "a+")
         itemFile.write(matchedObj)
@@ -1016,11 +1016,6 @@ async def on_command_error(ctx, error):
 async def on_ready():
     print(f"Logged in as\n{ bot.user.name }\n{ bot.user.id }\n------")
 
-    # Cleanup from last run
-    print("INFO: Cleaning up old files...")
-    cleanup()
-    print("------")
-
     # All done!
     print("READY!")
 
@@ -1050,9 +1045,6 @@ async def search(ctx, *args):
     # Import & reset globals
     global partialMatch
     partialMatch = False
-
-    print("Cleaning up old files...")
-    cleanup()
 
     # Verify arg length isn't over limits
     if len(args) >= 201:
@@ -1085,7 +1077,7 @@ async def search(ctx, *args):
             )
 
         # Generate a unique filename and write to it
-        entityFileName = generateFileName("entities-search")
+        entityFileName = generateFileName("entsearch")
 
         entityFile = open(entityFileName, "a+")
         for entity in directoryRequest.json()["results"]:
@@ -1197,9 +1189,6 @@ async def searchdir(ctx, *args):
     global partialMatch
     partialMatch = False
 
-    print("Cleaning up old files...")
-    cleanup()
-
     # Verify we have arguments
     # TODO: Update this to print out all available directories
     if len(args) <= 0:
@@ -1294,7 +1283,7 @@ async def searchdir(ctx, *args):
             return await ctx.send(embed=detailsEmbed)
 
         # Generate a unique filename and write to it
-        entityDirFileName = generateFileName("entities-searchdir")
+        entityDirFileName = generateFileName("entsearchdir")
 
         entityFile = open(entityDirFileName, "a+")
         entityFile.write("\n".join(entityNames))
