@@ -5,6 +5,7 @@
 ###
 
 import os
+import re
 
 ###
 # FUNC NAME: cleanup
@@ -12,16 +13,16 @@ import os
 # FUNC TYPE: Function
 ###
 def cleanup():
-    for txtFile in os.listdir():
+    for filename in os.listdir():
 
-        if ".txt" in txtFile:
-            print(f"Trying to clean { txtFile }")
+        if re.search(".*-.*\.txt", filename) != None:
+            print(f"Trying to clean { filename }")
 
-            if os.path.exists(txtFile):
-                os.remove(txtFile)
+            if os.path.exists(filename):
+                os.remove(filename)
 
-                if os.path.exists(txtFile): print(f"WARNING: { txtFile } was not deleted!")
-                else: print(f"SUCCESS: { txtFile } successfully deleted!\n------")
+                if os.path.exists(filename): print(f"WARNING: { filename } was not deleted!")
+                else: print(f"SUCCESS: { filename } successfully deleted!\n------")
 
     print("SUCCESS: All text files deleted!")
 
