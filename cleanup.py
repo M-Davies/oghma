@@ -9,7 +9,7 @@ import re
 
 ###
 # FUNC NAME: cleanup
-# FUNC DESC: Cleans up all txt files created from the last command
+# FUNC DESC: Cleans up all txt files created from commands. Fires on a schedule set by Heroku
 # FUNC TYPE: Function
 ###
 def cleanup():
