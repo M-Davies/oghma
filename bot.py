@@ -1189,13 +1189,23 @@ async def searchdir(ctx, *args):
     global partialMatch
     partialMatch = False
 
+    # Get API Root
+    rootRequest = requests.get("https://api.open5e.com?format=json")
+
+    # Throw if Root request wasn't successfull
+    if rootRequest.status_code != 200:
+        return await ctx.send(embed=codeError(rootRequest.status_code, "https://api.open5e.com?format=json"))
+    
+    # Remove search endpoint from list (not used in this command)
+    directories = list(rootRequest.json().keys())
+    directories.remove("search")
+
     # Verify we have arguments
-    # TODO: Update this to print out all available directories
     if len(args) <= 0:
         usageEmbed = discord.Embed(
             colour=discord.Colour.red(),
-            title="No arguments were given. Command requires at least one argument", 
-            description="USAGE: `?searchdir [DIRECTORY] [D&D OBJECT YOU WANT TO SEARCH FOR]`"
+            title="No directory was requested.\nUSAGE: `?searchdir [DIRECTORY] [D&D OBJECT]`", 
+            description=f"**Available Directories**\n{ ', '.join(directories) }"
         )
 
         usageEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
@@ -1208,13 +1218,6 @@ async def searchdir(ctx, *args):
     # Filter input to remove whitespaces and set lowercase
     filteredInput = "".join(args[1:]).lower()
 
-    # Get API Root
-    rootRequest = requests.get("https://api.open5e.com?format=json")
-
-    # Throw if Root request wasn't successfull
-    if rootRequest.status_code != 200: 
-        return await ctx.send(embed=codeError(rootRequest.status_code, "https://api.open5e.com?format=json"))
-
     # Verify arg length isn't over limits
     if len(args) >= 201:
         argumentsEmbed = discord.Embed(
@@ -1226,12 +1229,8 @@ async def searchdir(ctx, *args):
 
         return await ctx.send(embed=argumentsEmbed)
 
-    # Verify resource exists ( use list() since count() can't be used solely with keys() )
-    if list(rootRequest.json().keys()).count(args[0]) <= 0:
-
-        # Remove search endpoint from list
-        directories = list(rootRequest.json().keys())
-        directories.remove("search")
+    # Verify resource exists
+    if directories.count(args[0]) <= 0:
 
         noResourceEmbed = discord.Embed(
             colour=discord.Colour.orange(),
