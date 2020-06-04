@@ -951,25 +951,6 @@ def constructResponse(args, route, matchedObj):
 def generateFileName(fileType): return f"{ fileType }-{ str(random.randrange(1,1000000)) }.txt"
 
 ###
-# FUNC NAME: cleanup
-# FUNC DESC: Cleans up all txt files created from the last command
-# FUNC TYPE: Function
-###
-def cleanup():
-    for txtFile in os.listdir():
-
-        if ".txt" in txtFile:
-            print(f"Trying to clean { txtFile }")
-
-            if os.path.exists(txtFile):
-                os.remove(txtFile)
-
-                if os.path.exists(txtFile): print(f"WARNING: { txtFile } was not deleted!")
-                else: print(f"SUCCESS: { txtFile } successfully deleted!\n------")
-
-    print("SUCCESS: All text files deleted!")
-
-###
 # FUNC NAME: codeError
 # FUNC DESC: Sends an embed informing the user that there has been an API request failure
 # FUNC TYPE: Error
@@ -1220,6 +1201,7 @@ async def searchdir(ctx, *args):
     cleanup()
 
     # Verify we have arguments
+    # TODO: Update this to print out all available directories
     if len(args) <= 0:
         usageEmbed = discord.Embed(
             colour=discord.Colour.red(),
