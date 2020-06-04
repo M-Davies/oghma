@@ -563,7 +563,7 @@ def constructResponse(args, route, matchedObj):
 
         responses.append(planeEmbed)
 
-    # Section (NOT SUPPORTED YET)
+    # Section
     elif "section" in route:
         
         if len(matchedObj["desc"]) >= 2048:
