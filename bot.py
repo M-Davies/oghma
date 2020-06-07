@@ -430,11 +430,23 @@ def constructResponse(args, route, matchedObj):
 
         # Specials
         for special in matchedObj["special_abilities"]:
-            monsterEmbedActions.add_field(
-                name=f"{ special['name'] } (SPECIAL)",
-                value=special["desc"],
-                inline=False
-            )
+            if len(special["desc"]) >= 1024:
+                monsterEmbedActions.add_field(
+                    name=f"{ special['name'] } (SPECIAL)",
+                    value=special["desc"][:1023],
+                    inline=False
+                )
+                monsterEmbedActions.add_field(
+                    name=f"{ special['name'] } (SPECIAL) Continued...",
+                    value=special["desc"][1024:],
+                    inline=False
+                )
+            else:
+                monsterEmbedActions.add_field(
+                    name=f"{ special['name'] } (SPECIAL)",
+                    value=special["desc"],
+                    inline=False
+                )
 
         # Spells
         if matchedObj["spell_list"] != []:
