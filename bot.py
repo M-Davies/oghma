@@ -179,21 +179,24 @@ def constructResponse(args, route, matchedObj):
 
     # Document
     if "document" in route:
-        documentEmbed = None
+        # Get document link
+        docLink = matchedObj['url']
+        if "http" not in docLink: docLink = f"http://{ matchedObj['url'] }"
 
-        # Description charecter length for embeds is 2048, titles is 256
         if len(matchedObj["desc"]) >= 2048:
             documentEmbed = discord.Embed(
                 colour=discord.Colour.green(),
                 title=f"{ matchedObj['title'] } (DOCUMENT)", 
-                description=matchedObj["desc"][:2047]
+                description=matchedObj["desc"][:2047],
+                url=docLink
             )
             documentEmbed.add_field(name="Description Continued...", value=matchedObj["desc"][2048:])
         else:
             documentEmbed = discord.Embed(
                 colour=discord.Colour.green(),
-                title=matchedObj["title"], 
-                description=matchedObj["desc"]
+                title=f"{ matchedObj['title'] } (DOCUMENT)", 
+                description=matchedObj["desc"],
+                url=docLink
             )
         documentEmbed.add_field(name="Authors", value=matchedObj["author"], inline=False)
         documentEmbed.add_field(name="Link", value=matchedObj["url"], inline=True)
@@ -206,21 +209,24 @@ def constructResponse(args, route, matchedObj):
 
     # Spell
     elif "spell" in route:
-        spellEmbed = None
 
+        spellLink = f"https://open5e.com/spells/{matchedObj['slug']}/"
         if len(matchedObj["desc"]) >= 2048:
             spellEmbed = discord.Embed(
                 colour=discord.Colour.green(),
                 title=f"{ matchedObj['name'] } (SPELL)", 
-                description=matchedObj["desc"][:2047]
+                description=matchedObj["desc"][:2047],
+                url=spellLink
             )
             spellEmbed.add_field(name="Description Continued...", value=matchedObj["desc"][2048:], inline=False)
         else:
             spellEmbed = discord.Embed(
                 colour=discord.Colour.green(),
                 title=matchedObj["name"], 
-                description=matchedObj["desc"]
+                description=f"{ matchedObj['desc'] } (SPELL)",
+                url=spellLink
             )
+
         if matchedObj["higher_level"] != "": 
             spellEmbed.add_field(name="Higher Level", value=matchedObj["higher_level"], inline=False)
         
@@ -243,16 +249,18 @@ def constructResponse(args, route, matchedObj):
     # Monster
     elif "monster" in route:
         ## 1ST EMBED ##
+        monsterLink = f"https://open5e.com/monsters/{ matchedObj['slug'] }/"
         monsterEmbedBasics = discord.Embed(
             colour=discord.Colour.green(),
-            title=f"{ matchedObj['name'] } (MONSTER): BASIC STATS", 
+            title=f"{ matchedObj['name'] } (MONSTER) - STATS", 
             description="**TYPE**: {}\n**SUBTYPE**: {}\n**ALIGNMENT**: {}\n**SIZE**: {}\n**CHALLENGE RATING**: {}".format(
                 matchedObj["type"] if matchedObj["type"] != "" else "None", 
                 matchedObj["subtype"] if matchedObj["subtype"] != "" else "None", 
                 matchedObj["alignment"] if matchedObj["alignment"] != "" else "None",
                 matchedObj["size"],
                 matchedObj["challenge_rating"]
-            )
+            ),
+            url=monsterLink
         )
 
         # Str
@@ -364,7 +372,8 @@ def constructResponse(args, route, matchedObj):
         ## 2ND EMBED ##
         monsterEmbedSkills = discord.Embed(
             colour=discord.Colour.green(),
-            title=f"{ matchedObj['name'] } (MONSTER): SKILLS & PROFICIENCIES"
+            title=f"{ matchedObj['name'] } (MONSTER) - SKILLS & PROFICIENCIES",
+            url=monsterLink
         )
 
         # Skills & Perception
@@ -398,7 +407,8 @@ def constructResponse(args, route, matchedObj):
         ## 3RD EMBED ##
         monsterEmbedActions = discord.Embed(
             colour=discord.Colour.green(),
-            title=f"{ matchedObj['name'] } (MONSTER): ACTIONS AND ABILITIES"
+            title=f"{ matchedObj['name'] } (MONSTER) - ACTIONS & ABILITIES",
+            url=monsterLink
         )
 
         # Actions
@@ -447,8 +457,9 @@ def constructResponse(args, route, matchedObj):
         if matchedObj["legendary_desc"] != "":
             monsterEmbedLegend = discord.Embed(
                 colour=discord.Colour.green(),
-                title=f"{ matchedObj['name'] } (MONSTER): LEGENDARY ACTIONS AND ABILITIES",
-                description=matchedObj["legendary_desc"]
+                title=f"{ matchedObj['name'] } (MONSTER): LEGENDARY ACTIONS & ABILITIES",
+                description=matchedObj["legendary_desc"],
+                url=monsterLink
             )
 
             for action in matchedObj["legendary_actions"]:
@@ -469,10 +480,12 @@ def constructResponse(args, route, matchedObj):
     elif "background" in route:
 
         # 1st Embed (Basics)
+        bckLink = "https://open5e.com/sections/backgrounds"
         backgroundEmbed = discord.Embed(
             colour=discord.Colour.green(),
-            title=f"{ matchedObj['name'] } (BACKGROUND): BASICS",
-            description=matchedObj["desc"]
+            title=f"{ matchedObj['name'] } (BACKGROUND) - BASICS",
+            description=matchedObj["desc"],
+            url=bckLink
         )
 
         # Profs
@@ -505,7 +518,8 @@ def constructResponse(args, route, matchedObj):
         backgroundFeatureEmbed = discord.Embed(
             colour=discord.Colour.green(),
             title=f"{ matchedObj['name'] } (BACKGROUND)\nFEATURE ({ matchedObj['feature'] })",
-            description=matchedObj["feature_desc"]
+            description=matchedObj["feature_desc"],
+            url=bckLink
         )
 
         responses.append(backgroundFeatureEmbed)
@@ -518,7 +532,8 @@ def constructResponse(args, route, matchedObj):
                 backgroundChars = discord.Embed(
                     colour=discord.Colour.green(),
                     title=f"{ matchedObj['name'] } (BACKGROUND): CHARECTERISTICS",
-                    description=matchedObj["suggested_characteristics"]
+                    description=matchedObj["suggested_characteristics"],
+                    url=bckLink
                 )
 
                 responses.append(backgroundChars)
@@ -527,7 +542,8 @@ def constructResponse(args, route, matchedObj):
                 backgroundChars = discord.Embed(
                     colour=discord.Colour.green(),
                     title=f"{ matchedObj['name'] } (BACKGROUND): CHARECTERISTICS",
-                    description=matchedObj["suggested_characteristics"][:2047]
+                    description=matchedObj["suggested_characteristics"][:2047],
+                    url=bckLink
                 )
 
                 bckFileName = generateFileName("background")
@@ -556,7 +572,8 @@ def constructResponse(args, route, matchedObj):
         planeEmbed = discord.Embed(
             colour=discord.Colour.green(),
             title=f"{ matchedObj['name'] } (PLANE)",
-            description=matchedObj["desc"]
+            description=matchedObj["desc"],
+            url="https://open5e.com/sections/planes"
         )
 
         planeEmbed.set_thumbnail(url="https://i.imgur.com/GJk1HFh.jpg")
@@ -566,12 +583,14 @@ def constructResponse(args, route, matchedObj):
     # Section
     elif "section" in route:
         
+        secLink = f"https://open5e.com/sections/{ matchedObj['slug'] }/"
         if len(matchedObj["desc"]) >= 2048:
             
             sectionEmbedDesc = discord.Embed(
                 colour=discord.Colour.green(),
                 title=f"{ matchedObj['name'] } (SECTION) - { matchedObj['parent'] }",
-                description=matchedObj["desc"][:2047]
+                description=matchedObj["desc"][:2047],
+                url=secLink
             )
 
             sectionFilename = generateFileName("section")
@@ -593,13 +612,16 @@ def constructResponse(args, route, matchedObj):
             sectionEmbedDesc = discord.Embed(
                 colour=discord.Colour.green(),
                 title=f"{ matchedObj['name'] } (SECTION) - { matchedObj['parent'] }",
-                description=matchedObj["desc"]
+                description=matchedObj["desc"],
+                url=secLink
             )
             sectionEmbedDesc.set_thumbnail(url="https://i.imgur.com/J75S6bF.jpg")
             responses.append(sectionEmbedDesc)
 
     # Feat
     elif "feat" in route:
+
+        # Open5e website doesnt have a website entry for URL's yet
         featEmbed = discord.Embed(
             colour=discord.Colour.green(),
             title=f"{ matchedObj['name'] } (FEAT)",
@@ -613,11 +635,13 @@ def constructResponse(args, route, matchedObj):
     # Condition
     elif "condition" in route:
 
+        conLink = "https://open5e.com/gameplay-mechanics/conditions"
         if len(matchedObj["desc"]) >= 2048:
             conditionEmbed = discord.Embed(
                 colour=discord.Colour.green(),
                 title=f"{ matchedObj['name'] } (CONDITION)",
-                description=matchedObj["desc"][:2047]
+                description=matchedObj["desc"][:2047],
+                url=conLink
             )
             conditionEmbed.add_field(name="DESCRIPTION continued...", value=matchedObj["desc"][2048:], inline=False)
 
@@ -625,7 +649,8 @@ def constructResponse(args, route, matchedObj):
             conditionEmbed = discord.Embed(
                 colour=discord.Colour.green(),
                 title=f"{ matchedObj['name'] } (CONDITION)",
-                description=matchedObj["desc"]
+                description=matchedObj["desc"],
+                url=conLink
             )
         conditionEmbed.set_thumbnail(url="https://i.imgur.com/tOdL5n3.jpg")
 
@@ -633,11 +658,12 @@ def constructResponse(args, route, matchedObj):
 
     # Race
     elif "race" in route:
-
+        raceLink = f"https://open5e.com/races/{ matchedObj['slug'] }"
         raceEmbed = discord.Embed(
             colour=discord.Colour.green(),
             title=f"{ matchedObj['name'] } (RACE)",
-            description=matchedObj["desc"]
+            description=matchedObj["desc"],
+            url=raceLink
         )
 
         # Asi Description
@@ -678,7 +704,8 @@ def constructResponse(args, route, matchedObj):
                 subraceEmbed = discord.Embed(
                     colour=discord.Colour.green(),
                     title=f"{ subrace['name'] } (Subrace of **{ matchedObj['name'] })",
-                    description=subrace["desc"]
+                    description=subrace["desc"],
+                    url=raceLink
                 )
 
                 # Subrace asi's
@@ -700,10 +727,12 @@ def constructResponse(args, route, matchedObj):
     elif "class" in route:
 
         # 1st Embed & File (BASIC)
+        classLink = f"https://open5e.com/classes/{ matchedObj['slug'] }"
         classDescEmbed = discord.Embed(
             colour=discord.Colour.green(),
             title=f"{ matchedObj['name'] } (CLASS): Basics",
-            description=matchedObj["desc"][:2047]
+            description=matchedObj["desc"][:2047],
+            url=classLink
         )
 
         # Spell casting
@@ -737,7 +766,8 @@ def constructResponse(args, route, matchedObj):
         classDetailsEmbed = discord.Embed(
             colour=discord.Colour.green(),
             title=f"{ matchedObj['name'] } (CLASS): Profs & Details",
-            description=f"**ARMOUR**: { matchedObj['prof_armor'] }\n**WEAPONS**: { matchedObj['prof_weapons'] }\n**TOOLS**: { matchedObj['prof_tools'] }\n**SAVE THROWS**: { matchedObj['prof_saving_throws'] }\n**SKILLS**: { matchedObj['prof_skills'] }"
+            description=f"**ARMOUR**: { matchedObj['prof_armor'] }\n**WEAPONS**: { matchedObj['prof_weapons'] }\n**TOOLS**: { matchedObj['prof_tools'] }\n**SAVE THROWS**: { matchedObj['prof_saving_throws'] }\n**SKILLS**: { matchedObj['prof_skills'] }",
+            url=classLink
         )
 
         classDetailsEmbed.add_field(
@@ -767,7 +797,8 @@ def constructResponse(args, route, matchedObj):
                     archTypeEmbed = discord.Embed(
                         colour=discord.Colour.green(),
                         title=f"{ archtype['name'] } (ARCHETYPES)",
-                        description=archtype["desc"]
+                        description=archtype["desc"],
+                        url=classLink
                     )
 
                     responses.append(archTypeEmbed)
@@ -777,7 +808,8 @@ def constructResponse(args, route, matchedObj):
                     archTypeEmbed = discord.Embed(
                         colour=discord.Colour.green(),
                         title=f"{ archtype['name'] } (ARCHETYPES)\n{ matchedObj['subtypes_name'] if matchedObj['subtypes_name'] != '' else 'None' } (SUBTYPE)",
-                        description=archtype["desc"][:2047]
+                        description=archtype["desc"][:2047],
+                        url=classLink
                     )
 
                     clsArchFileName = generateFileName("clsarchetype")
@@ -803,12 +835,13 @@ def constructResponse(args, route, matchedObj):
    
     # Magic Item
     elif "magicitem" in route:
-
+        itemLink = f"https://open5e.com/magicitems/{ matchedObj['slug'] }"
         if len(matchedObj["desc"]) >= 2048:
             magicItemEmbed = discord.Embed(
                 colour=discord.Colour.green(),
                 title=f"{ matchedObj['name'] } (MAGIC ITEM)",
-                description=matchedObj["desc"][:2047]
+                description=matchedObj["desc"][:2047],
+                url=itemLink
             )
 
             mIfileName = generateFileName("magicitem")
@@ -831,8 +864,10 @@ def constructResponse(args, route, matchedObj):
             magicItemEmbed = discord.Embed(
                 colour=discord.Colour.green(),
                 title=f"{ matchedObj['name'] } (MAGIC ITEM)",
-                description=matchedObj["desc"]
+                description=matchedObj["desc"],
+                url=itemLink
             )
+        
         for response in responses:
             if isinstance(response, discord.Embed):
                 response.add_field(name="TYPE", value=matchedObj["type"], inline=True)
@@ -853,7 +888,8 @@ def constructResponse(args, route, matchedObj):
         weaponEmbed = discord.Embed(
             colour=discord.Colour.green(),
             title=f"{ matchedObj['name'] } (WEAPON)",
-            description=f"**PROPERTIES**: { ' | '.join(matchedObj['properties']) if matchedObj['properties'] != [] else 'None' }"
+            description=f"**PROPERTIES**: { ' | '.join(matchedObj['properties']) if matchedObj['properties'] != [] else 'None' }",
+            url="https://open5e.com/sections/weapons"
         )
         weaponEmbed.add_field(
             name="DAMAGE",
