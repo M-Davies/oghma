@@ -378,7 +378,7 @@ def constructResponse(args, route, matchedObj):
         monsterEmbedSkills.add_field(name="SENSES", value=matchedObj["senses"], inline=True)
 
         # Languages
-        monsterEmbedSkills.add_field(name="LANGUAGES", value=matchedObj["languages"], inline=True)
+        if matchedObj["languages"] != "": monsterEmbedSkills.add_field(name="LANGUAGES", value=matchedObj["languages"], inline=True)
 
         # Damage conditionals
         monsterEmbedSkills.add_field(
