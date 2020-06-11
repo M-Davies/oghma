@@ -1037,6 +1037,7 @@ async def ping(ctx):
     aliases=["sea", "s", "S"]
 )
 async def search(ctx, *args):
+    print(f"Executing: ?search {args}")
 
     # Import & reset globals
     global partialMatch
@@ -1180,6 +1181,7 @@ async def search(ctx, *args):
     aliases=["dir", "d", "D"]
 )
 async def searchdir(ctx, *args):
+    print(f"EXECUTING: ?searchdir {args}")
 
     # Import & reset globals
     global partialMatch
