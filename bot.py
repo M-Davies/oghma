@@ -879,6 +879,7 @@ def constructResponse(args, route, matchedObj):
                 description=matchedObj["desc"],
                 url=itemLink
             )
+            responses.append(magicItemEmbed)
         
         for response in responses:
             if isinstance(response, discord.Embed):
@@ -1021,8 +1022,7 @@ async def on_ready():
 # FUNC TYPE: Command
 ###
 @bot.command(name='ping', help='Pings the bot.\nUsage: !ping')
-async def ping(ctx):
-    await ctx.send('Pong!')
+async def ping(ctx): await ctx.send('Pong!')
 
 ###
 # FUNC NAME: ?search [ENTITY]
