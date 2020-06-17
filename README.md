@@ -32,4 +32,4 @@ The bot accepts a search phrase (known as an entity) which it feeds into the [Op
 - This is quicker than `?search`, with a smaller searchbase limited to the directory
 
 # How to add to your server
-The bot is awaiting approval from the guys at [top.gg](https://top.gg/) so in the meantime, a [direct link via OAuth](https://discord.com/developers/applications/658336624647733258/oauth2) will have to do.
+We have a top.gg page! See https://top.gg/bot/658336624647733258
