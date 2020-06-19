@@ -1,5 +1,5 @@
 # Oghma - Rules and references bot for discord dnd groups
-**THIS PROJECT IS IN EARLY ALPHA WORK IN PROGRESS. THERE WILL LIKELY BE MISSING FEATURES OR BUGS**
+[![Discord Bots](https://top.gg/api/widget/658336624647733258.svg)](https://top.gg/bot/658336624647733258)
 
 # Overview 
 This is (yet another) discord bot for dnd groups on discord. The bot is pretty simple, it pulls in and parses data from [Open5e](https://open5e.com/) to be displayed in discord. The whole open5e database is utilised, meaning you can query the bot for dnd conditions, spells, monsters, whatever you need to lookup in the heat of the moment!
