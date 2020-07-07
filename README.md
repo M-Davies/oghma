@@ -21,7 +21,7 @@ The bot accepts a search phrase (known as an entity) which it feeds into the [Op
 "documents"
 "backgrounds"
 "planes"
-"sections" (NOT CURRENTLY SUPPORTED)
+"sections"
 "feats"
 "conditions"
 "races"
