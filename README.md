@@ -33,3 +33,6 @@ The bot accepts a search phrase (known as an entity) which it feeds into the [Op
 
 # How to add to your server
 We have a top.gg page! See https://top.gg/bot/658336624647733258
+
+# Contributing
+All contributions are welcome! Please join our [discord](https://discord.gg/8YZ2NZ5) and post a greeting in `#contributing` to get started. It's just me working on the bot at the moment so any and all help would be appreciated :)
