@@ -1,4 +1,4 @@
-discord.py==1.2.5
+discord.py==1.4.1
 async-timeout==3.0.1
 python-dotenv==0.10.3
 requests==2.23.0
