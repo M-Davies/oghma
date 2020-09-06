@@ -633,7 +633,7 @@ def constructResponse(args, route, matchedObj):
     # Feat
     elif "feat" in route:
 
-        # Open5e website doesnt have a website entry for URL's yet
+        # Open5e website doesn't have a website entry for Urls yet
         featEmbed = discord.Embed(
             colour=discord.Colour.green(),
             title=f"{ matchedObj['name'] } (FEAT)",
@@ -720,7 +720,7 @@ def constructResponse(args, route, matchedObj):
                     url=raceLink
                 )
 
-                # Subrace asi's
+                # Subrace Benefits
                 subraceEmbed.add_field(name="SUBRACE BENEFITS", value=subrace["asi_desc"], inline=False)
 
                 # Subrace traits
@@ -930,7 +930,7 @@ def constructResponse(args, route, matchedObj):
 
         noRouteEmbed = discord.Embed(
             colour=discord.Colour.red(),
-            title="The matched item's type (i.e. spell, monster, etc) was not recognised",
+            title="The matched item's type (i.e. spell, monster, etc) was not recognized",
             description=f"Please create an issue describing this failure and with the following values at https://github.com/shadowedlucario/oghma/issues\n**Input**: { args }\n**Route**: { route }\n**Troublesome Object**: SEE `{ badObjectFilename }`"
         )
         noRouteEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
@@ -984,21 +984,21 @@ async def on_command_error(ctx, error):
             description=error
         )
         
-        invokeEmbed.add_field(name="NOTE", value="Please report this to https://github.com/shadowedlucario/oghma/issues stating how you encounted this bug and with the following infomation...", inline=False)
+        invokeEmbed.add_field(name="NOTE", value="Please report this to https://github.com/shadowedlucario/oghma/issues stating how you encountered this bug and with the following infomation...", inline=False)
         
         invokeEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
 
         return await ctx.send(embed=invokeEmbed)
 
-    # Another unexpected error occured
+    # Another unexpected error occurred
     else:
         unexpectedEmbed = discord.Embed(
             colour=discord.Colour.red(),
-            name="ERROR: UNEXPECTED EXCEPTION OCCURED",
+            name="ERROR: UNEXPECTED EXCEPTION OCCURRED",
             description=error
         )
 
-        unexpectedEmbed.add_field(name="NOTE", value="Please report this to https://github.com/shadowedlucario/oghma/issues stating how you encounted this bug and with the following infomation...", inline=False)
+        unexpectedEmbed.add_field(name="NOTE", value="Please report this to https://github.com/shadowedlucario/oghma/issues stating how you encountered this bug and with the following infomation...", inline=False)
         
         unexpectedEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
 
@@ -1096,7 +1096,7 @@ async def search(ctx, *args):
 
         await ctx.send(embed=detailsEmbed)
 
-        # Send entites file
+        # Send entities file
         return await ctx.send(file=discord.File(entityFileName))
 
     # Filter input to remove whitespaces and set lowercase
@@ -1121,7 +1121,7 @@ async def search(ctx, *args):
         unknownMatchEmbed = discord.Embed(
             colour=discord.Colour.red(),
             title="ERROR", 
-            description="I found an entity in the API database that doesn't contain a `name` or `docuement` attribute. Please report this to https://github.com/shadowedlucario/oghma/issues"
+            description="I found an entity in the API database that doesn't contain a `name` or `document` attribute. Please report this to https://github.com/shadowedlucario/oghma/issues"
         )
 
         unknownMatchEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
@@ -1147,7 +1147,7 @@ async def search(ctx, *args):
 
             if isinstance(response, discord.Embed):
 
-                # Set a thumbnail for relevent embeds and on successful Scyfall request, overwriting all other thumbnail setup
+                # Set a thumbnail for relevent embeds and on successful Scryfall request, overwriting all other thumbnail setup
                 image = requestScryfall(args, False)
 
                 if (not isinstance(image, int)): response.set_thumbnail(url=image)
@@ -1299,7 +1299,7 @@ async def searchdir(ctx, *args):
 
         await ctx.send(embed=detailsEmbed)
 
-        # Send entites file
+        # Send entities file
         return await ctx.send(file=discord.File(entityDirFileName))
 
     # search/ endpoint is best used with the dedicated ?search command
@@ -1347,7 +1347,7 @@ async def searchdir(ctx, *args):
         unknownMatchEmbed = discord.Embed(
             colour=discord.Colour.red(),
             title="ERROR", 
-            description="I found an entity in the API database that doesn't contain a `name` or `docuement` attribute. Please report this to https://github.com/shadowedlucario/oghma/issues"
+            description="I found an entity in the API database that doesn't contain a `name` or `document` attribute. Please report this to https://github.com/shadowedlucario/oghma/issues"
         )
 
         unknownMatchEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
@@ -1373,7 +1373,7 @@ async def searchdir(ctx, *args):
             
             if isinstance(response, discord.Embed):
 
-                # Set a thumbnail for relevent embeds and on successful Scyfall request, overwrites other thumbnail setup
+                # Set a thumbnail for relevent embeds and on successful Scryfall request, overwrites other thumbnail setup
                 image = requestScryfall(args, True)
 
                 if (not isinstance(image, int)): response.set_thumbnail(url=image)
