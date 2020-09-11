@@ -35,4 +35,5 @@ The bot accepts a search phrase (known as an entity) which it feeds into the [Op
 We have a top.gg page! See https://top.gg/bot/658336624647733258
 
 # Contributing
-All contributions are welcome! Please join our [discord](https://discord.gg/8YZ2NZ5) and post a greeting in `#contributing` to get started. It's just me working on the bot at the moment so any and all help would be appreciated :)
+All contributions are welcome! Please join our [discord](https://discord.gg/8YZ2NZ5) and post a greeting in `#contributing` to get started. Also check out our [Testing.md](./TESTING.md) guide to setting up your own test bot to push new features and fixes (requires joining the discord)!
+It's just me working on the bot at the moment so any and all help would be appreciated :)
