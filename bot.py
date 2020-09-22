@@ -1025,6 +1025,49 @@ async def on_ready():
 async def ping(ctx): await ctx.send('Pong!')
 
 ###
+# FUNC NAME: ?roll
+# FUNC DESC: Runs a dice roller
+# FUNC TYPE: Command
+###
+@bot.command(
+    name='roll',
+    help='Runs a dice roller',
+    usage='?roll [ENTITY]',
+    aliases=["sea", "s", "S"]
+)
+async def roll(ctx, *args):
+    print(f"Executing: ?roll {args}")
+
+    # Import & reset globals
+    global partialMatch
+    partialMatch = False
+    
+    # Verify arg length isn't over limits
+    if len(args) >= 201:
+        argumentsEmbed = discord.Embed(
+            color=discord.Colour.red(),
+            title="Invalid argument length",
+            description="This command does not support more than 200 words in a single message. Try splitting up your query."
+        )
+        argumentsEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
+
+        return await ctx.send(embed=argumentsEmbed)
+
+    # Send command usage if no args are supplied
+    if len(args) <= 0:
+        argumentsEmbed = discord.Embed(
+            color=discord.Colour.orange(),
+            title="?roll requires at least one argument",
+            description="*USAGE*\n`?roll [SIDES] [NUMBER]`"
+        )
+        argumentsEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
+
+        return await ctx.send(embed=argumentsEmbed)
+
+    # If we have a dice 
+    
+
+###
 # FUNC NAME: ?search [ENTITY]
 # FUNC DESC: Queries the Open5e search API, basically searches the whole thing for the ENTITY.
 # ENTITY: The DND entity you wish to get infomation on.
