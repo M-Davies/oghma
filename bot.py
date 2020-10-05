@@ -10,6 +10,7 @@ import json
 import random
 import discord
 import logging
+import re
 from discord.ext import commands
 
 from dotenv import load_dotenv
@@ -1032,16 +1033,35 @@ async def ping(ctx): await ctx.send('Pong!')
 @bot.command(
     name='roll',
     help='Runs a dice roller',
-    usage='?roll [ENTITY]',
-    aliases=["sea", "s", "S"]
+    usage='?roll [ROLLS]d[SIDES]',
+    aliases=["throw", "dice", "r", "R"]
 )
 async def roll(ctx, *args):
+    # TODO: Make calculations possible in discord
     print(f"Executing: ?roll {args}")
-
-    # Import & reset globals
-    global partialMatch
-    partialMatch = False
     
+    # Return invalid args embed (to be called later)
+    def invalidArgsSupplied():
+        argumentsEmbed = discord.Embed(
+            color=discord.Colour.red(),
+            title="Invalid arguments supplied to ?roll",
+            description="**USAGE**\n`?roll [ROLLS]d[SIDES]`\n*Example:* `?roll 3d20`"
+        )
+        argumentsEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
+
+        return argumentsEmbed
+
+    # Return invalid size of args supplied embed (to be called later)
+    def invalidArgSizeSupplied():
+        argsSizeEmbed = discord.Embed(
+            color=discord.Colour.red(),
+            title="ROLLS and SIDES supplied to `?roll` must be numbers of a reasonble value",
+            description="**USAGE**\n`?roll [ROLLS]d[SIDES]`\n*Example:* `?roll 3d20`"
+        )
+        argsSizeEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
+
+        return argsSizeEmbed
+
     # Verify arg length isn't over limits
     if len(args) >= 201:
         argumentsEmbed = discord.Embed(
@@ -1055,17 +1075,79 @@ async def roll(ctx, *args):
 
     # Send command usage if no args are supplied
     if len(args) <= 0:
-        argumentsEmbed = discord.Embed(
+        rollUsageEmbed = discord.Embed(
             color=discord.Colour.orange(),
-            title="?roll requires at least one argument",
-            description="*USAGE*\n`?roll [SIDES] [NUMBER]`"
+            title="`?roll` requires at least one argument",
+            description="**USAGE**\n`?roll [ROLLS]d[SIDES]`\n*Example:* `?roll 3d20`"
         )
-        argumentsEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
+        rollUsageEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
 
-        return await ctx.send(embed=argumentsEmbed)
+        return rollUsageEmbed
 
-    # If we have a dice 
+    # Verify arguments contains a valid request
+    sanitisedInput = "".join(args).lower()
+    numberOfRolls = 1
+    numberOfSides = 0
+    regexReturn = re.search("(?P<rolls>[0-9]*)d(?P<sides>[0-9]+)", sanitisedInput)
+
+    if regexReturn != None:
+
+        if regexReturn.group("rolls") != "":
+
+            # Checks the amount of rolls supplied is a number and isn't too high
+            try:
+                numberOfRolls = int(regexReturn.group("rolls"))
+
+                if numberOfRolls >= 1000001:
+                    return await ctx.send(embed=invalidArgSizeSupplied())
+
+            except ValueError:
+                return await ctx.send(embed=invalidArgsSupplied())
+        
+        # Checks the amount of sides supplied is a number and is valid
+        try:
+            numberOfSides = int(regexReturn.group("sides"))
+
+            if numberOfSides <= 1 or numberOfSides >= 1000001:
+                return await ctx.send(embed=invalidArgSizeSupplied())
+
+        except ValueError:
+            return await ctx.send(embed=invalidArgsSupplied())
+
+    else: return await ctx.send(embed=invalidArgsSupplied())
     
+    # Calculate dice rolls
+    diceRollResults = []
+
+    diceRollsEmbed = discord.Embed(
+        color=discord.Colour.green()
+    )
+    diceRollsEmbed.add_field(name="Query", value=sanitisedInput, inline=False)
+
+    for currentRoll in range(1, numberOfRolls + 1):
+        diceRollResults.append(random.randrange(1, numberOfSides + 1))
+
+    # Calculate total and add to response
+    currentTotal = 0
+    for currentRoll in diceRollResults: currentTotal += currentRoll
+
+    diceRollsEmbed.add_field(name="Result", value=str(currentRoll), inline=False)
+
+    # Add result details to response
+    diceRollsEmbed.add_field(
+        name="Details",
+        value=f"{diceRollResults} *(Total {currentTotal})*",
+        inline=False
+    )
+
+    return await ctx.send(embed=diceRollsEmbed)
+
+    # diceRollsEmbed.add_field(
+    #     name=f"Result {str(currentRoll)}",
+    #     value=f"----------\n**{str(random.randrange(1, numberOfSides + 1))}**"
+    # )
+    print("DONE!")
+
 
 ###
 # FUNC NAME: ?search [ENTITY]
