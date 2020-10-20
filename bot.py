@@ -1054,7 +1054,7 @@ async def ping(ctx):
     name='roll',
     help='Runs a dice roller',
     usage='?roll [ROLLS]d[SIDES]',
-    aliases=["throw", "dice", "r", "R", "d"]
+    aliases=["throw", "dice", "r", "R"]
 )
 async def roll(ctx, *args):
     print(f"Executing: ?roll {args}")
@@ -1278,6 +1278,7 @@ async def roll(ctx, *args):
 
     # Append final total and send embed
     diceRollEmbed.insert_field_at(index=1, name="TOTAL", value=f"`{runningTotal}`", inline=False)
+    diceRollEmbed.set_footer(text="If you see a result that doesn't look right, raise an issue at https://github.com/shadowedlucario/oghma/issues")
     print(f"SENDING EMBED: { diceRollEmbed.title }...")
     await ctx.send(embed=diceRollEmbed)
     print("DONE!")
