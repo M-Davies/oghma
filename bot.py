@@ -27,6 +27,7 @@ CLIENT = discord.Client()
 
 SEARCH_PARAM_ENDPOINTS = ["spells", "monsters", "magicitems", "weapons"]
 NUMERIC_OPERATORS = ["+", "-", "*", "/"]
+ROLL_MAX_PARAM_VALUE = 10001
 
 # Set up logging
 logger = logging.getLogger('discord')
@@ -1195,7 +1196,7 @@ async def roll(ctx, *args):
                         try:
                             numberOfRolls = int(regexReturn.group("rolls"))
 
-                            if numberOfRolls >= 10001:
+                            if numberOfRolls >= ROLL_MAX_PARAM_VALUE:
                                 return await ctx.send(embed=invalidArgSizeSupplied())
 
                         except ValueError:
@@ -1205,7 +1206,7 @@ async def roll(ctx, *args):
                     try:
                         numberOfSides = int(regexReturn.group("sides"))
 
-                        if numberOfSides <= 1 or numberOfSides >= 10001:
+                        if numberOfSides < 2 or numberOfSides >= ROLL_MAX_PARAM_VALUE:
                             return await ctx.send(embed=invalidArgSizeSupplied())
 
                     except ValueError:
@@ -1216,7 +1217,7 @@ async def roll(ctx, *args):
                 
                 # Calculate dice rolls and append to the dict
                 for currentRoll in range(1, numberOfRolls + 1):
-                    diceRollResults[argument]["results"].append(random.randrange(1.0, numberOfSides + 1.0))
+                    diceRollResults[argument]["results"].append(random.randint(1.0, numberOfSides))
 
                 # Calculate the section total and append to the dict
                 diceSectionTotal = 0
