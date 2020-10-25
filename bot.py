@@ -8,6 +8,7 @@ import os
 import requests
 import json
 import random
+import time
 import discord
 import logging
 import re
@@ -28,6 +29,7 @@ CLIENT = discord.Client()
 SEARCH_PARAM_ENDPOINTS = ["spells", "monsters", "magicitems", "weapons"]
 NUMERIC_OPERATORS = ["+", "-", "*", "/"]
 ROLL_MAX_PARAM_VALUE = 10001
+COMMAND_DELAY_SLEEP_VALUE = 1
 
 # Set up logging
 logger = logging.getLogger('discord')
@@ -1058,6 +1060,10 @@ async def ping(ctx):
     aliases=["throw", "dice", "r", "R"]
 )
 async def roll(ctx, *args):
+
+    # Sleep to wait for other stuff to complete first
+    time.sleep(COMMAND_DELAY_SLEEP_VALUE)
+
     print(f"Executing: ?roll {args}")
     
     # Return invalid args embed (to be called later)
@@ -1228,7 +1234,7 @@ async def roll(ctx, *args):
 
                 # Append to embed
                 diceRollEmbed.add_field(
-                    name=f"__STEP {stepCount}__\n`{argument}` ROLLED |",
+                    name=f"__STEP {stepCount}__\n`{numberOfRolls}d{numberOfSides}` ROLLED |",
                     value=f"{diceRollResults[argument]['results']}\n*TOTAL = {diceRollResults[argument]['sectionTotal']}*",
                     inline=True
                 )
@@ -1297,6 +1303,10 @@ async def roll(ctx, *args):
     aliases=["sea", "s", "S"]
 )
 async def search(ctx, *args):
+
+    # Sleep to wait for other stuff to complete first
+    time.sleep(COMMAND_DELAY_SLEEP_VALUE)
+    
     print(f"Executing: ?search {args}")
 
     # Import & reset globals
@@ -1434,6 +1444,10 @@ async def search(ctx, *args):
     aliases=["dir", "d", "D"]
 )
 async def searchdir(ctx, *args):
+
+    # Sleep to wait for other stuff to complete first
+    time.sleep(COMMAND_DELAY_SLEEP_VALUE)
+
     print(f"EXECUTING: ?searchdir {args}")
 
     # Import & reset globals
