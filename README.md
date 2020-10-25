@@ -20,9 +20,10 @@ NOTE: Most commands enforce a word limit of 200 words per query
 
 ### ?roll [ROLLS]d[SIDES]
 
-- Rolls a dice `ROLLS` times of `SIDES` many sides. Each roll result is recorded and displayed to the end user as well as all the steps taken by the command. `ROLLS` can be omitted (the bot will default to 1 roll) but `SIDES` must be equal to at least 2.
+**ALIASES `[throw, dice, r, R]`**
 
-- You can also use various operators to make complex sums and equations on your dice roll queries. As of writing this, the currently supported operators are below.
+- Rolls a dice `ROLLS` times of `SIDES` many sides. Each roll result is recorded and displayed to the end user as well as all the steps taken by the command. `ROLLS` can be omitted (the bot will default to 1 roll) but `SIDES` must be equal to at least 2.
+- You can also use various operators to make complex sums and equations on your dice roll queries. Obviously, this means that standalone numbers (e.g. `4` `7.2`) are supported too. As of writing this, the currently supported operators are below.
 
 ```python
 "+" # Addition
@@ -31,16 +32,23 @@ NOTE: Most commands enforce a word limit of 200 words per query
 "/" # Division
 ```
 
+- `ROLLS` and `SIDES` values are treated as single decimal point values but any standalone numbers are treated as decimal pointed, meaning `?roll 1d20.5` would eval to `?roll 1d20` but `?roll 1d20.5 + 7.5` would eval to `?roll 1d20 + 7.5`.
+- Spaces must be placed between operators and arguments, otherwise it's likely your dice roll will not be calculated correctly. `?roll 3d4 + 3` is fine but `?roll 3d4+3` would only evaluate to `?roll 3d4`.
+
 ![Image of Rolls Example](/images/rollsExample.png)
 
 - The steps are listed to show a user what order the program has calculated the final total in, as well as showing the running/cumulative total at that time of calculation.
 
 ### ?search [ENTITY]
 
+**ALIASES = `[sea, s, S]`**
+
 - Utilises the Open5e [search/](https://api.open5e.com/search/) endpoint to search the entire database for the ENTITY given. `search/` is like a directory (see below) that lists items in the database, but it also provides links and pointers to the original object in it's respective directory. This is how the bot will find your requested entity.
 - This takes longer than `?searchdir` but provides a lot wider searchbase if you don't know what category your entity is in.
 
 ### ?searchdir [DIRECTORY] [ENTITY]
+
+**ALIASES = `[dir, d, D]`**
 
 - Searches a specific DIRECTORY in the Open5e database for the ENTITY. As of writing this, the total list of available directories is:
 
