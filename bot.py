@@ -1013,6 +1013,16 @@ async def on_command_error(ctx, error):
 
         return await ctx.send(embed=invokeEmbed)
 
+    elif isinstance(error, commands.CommandNotFound):
+        notFoundEmbed = discord.Embed(
+            colour=discord.Colour.red(),
+            name="ERROR: COMMAND DOES NOT EXIST"
+        )
+        
+        notFoundEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
+
+        return await ctx.send(embed=notFoundEmbed)
+
     # Another unexpected error occurred
     else:
         unexpectedEmbed = discord.Embed(
@@ -1064,36 +1074,36 @@ async def roll(ctx, *args):
     # Sleep to wait for other stuff to complete first
     time.sleep(COMMAND_DELAY_SLEEP_VALUE)
 
-    print(f"Executing: ?roll {args}")
+    print(f"Executing: ?roll { args }")
     
     # Return invalid args embed (to be called later)
-    def invalidArgsSupplied():
+    def invalidArgSupplied(culprit):
         invalidArgsEmbed = discord.Embed(
             color=discord.Colour.red(),
-            title="Invalid arguments supplied to ?roll",
-            description="**USAGE**\n`?roll [ROLLS]d[SIDES]`\n*Example:* `?roll 3d20`"
+            title=f"Invalid argument (`{ culprit }`) supplied to ?roll",
+            description="This is likely due to the value being too low or high.\n\n**USAGE**\n`?roll [ROLLS]d[SIDES]`\n*Example:* `?roll 3d20 + 3`"
         )
-        invalidArgsEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
+        invalidArgsEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
 
         return invalidArgsEmbed
 
     # Return invalid size of args supplied embed (to be called later)
-    def invalidArgSizeSupplied():
-        invalidArgsSizeEmbed = discord.Embed(
+    def invalidSizeSupplied(culprit):
+        invalidSizeEmbed = discord.Embed(
             color=discord.Colour.red(),
-            title="ROLLS and SIDES supplied to `?roll` must be numbers of a reasonable value",
-            description="**USAGE**\n`?roll [ROLLS]d[SIDES]`\n*Example:* `?roll 3d20`"
+            title=f"Invalid size of argument (`{ culprit }`) supplied to ?roll",
+            description=f"ROLLS and SIDES and STATIC NUMBERS supplied to `?roll` must be numbers of a reasonable value (CURRENT LIMIT = { ROLL_MAX_PARAM_VALUE }).\n\n**USAGE**\n`?roll [ROLLS]d[SIDES]`\n*Example:* `?roll 3d20 + 3`"
         )
-        invalidArgsSizeEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
+        invalidSizeEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
 
-        return invalidArgsSizeEmbed
+        return invalidSizeEmbed
     
     # Return invalid numberic operator embed (to be called later)
     def unrecognisedNumericOperator(numericOperator):
         invalidOperatorEmbed = discord.Embed(
             color=discord.Colour.red(),
-            title=f"`{numericOperator}` IS NOT SUPPORTED",
-            description=f"**SUPPORTED OPERATORS:**\n{NUMERIC_OPERATORS}"
+            title=f"`{ numericOperator }` IS NOT SUPPORTED",
+            description=f"**SUPPORTED OPERATORS:**\n{ NUMERIC_OPERATORS }"
         )
         invalidOperatorEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
 
@@ -1108,7 +1118,7 @@ async def roll(ctx, *args):
         rollUsageEmbed = discord.Embed(
             color=discord.Colour.orange(),
             title="`?roll` requires at least one argument",
-            description="**USAGE**\n`?roll [ROLLS]d[SIDES]`\n*Example:* `?roll 3d20`"
+            description="**USAGE**\n`?roll [ROLLS]d[SIDES]`\n*Example:* `?roll 3d20 + 3`"
         )
         rollUsageEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
 
@@ -1119,8 +1129,8 @@ async def roll(ctx, *args):
         color=discord.Colour.purple()
     )
     diceRollEmbed.add_field(name="QUERY", value=args, inline=False)
-    diceRollEmbed.insert_field_at(index=2, name="RESULTS", value=f"----------", inline=False)
-    diceRollEmbed.set_author(name=f"Rolled by {ctx.author.display_name}", icon_url=f"{ctx.author.avatar_url}")
+    diceRollEmbed.insert_field_at(index=2, name="RESULTS", value="----------", inline=False)
+    diceRollEmbed.set_author(name=f"Rolled by { ctx.author.display_name }", icon_url=f"{ ctx.author.avatar_url }")
 
     # Initialise nested result dictionary. Example for query `?r 3d8 + 8`:
     # {
@@ -1165,7 +1175,7 @@ async def roll(ctx, *args):
             else:
                 operatorAtFront = discord.Embed(
                     color=discord.Colour.red(),
-                    title=f"THE `{argument}` OPERATOR CANNOT BE THE FIRST CHARACTER"
+                    title=f"THE `{ argument }` OPERATOR CANNOT BE THE FIRST CHARACTER"
                 )
                 operatorAtFront.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
 
@@ -1181,8 +1191,12 @@ async def roll(ctx, *args):
             except ValueError: pass
 
             if isinstance(numCheck, float):
-                # Add to dict in same manner as a dice roll total
-                diceRollResults[argument]["sectionTotal"] = float(argument)
+                # Ensure number isn't too big
+                if numCheck <= ROLL_MAX_PARAM_VALUE:
+                    # Add to dict in same manner as a dice roll total
+                    diceRollResults[argument]["sectionTotal"] = numCheck
+                else:
+                    return await ctx.send(embed=invalidSizeSupplied(numCheck))
             
             # If it's a dice...
             else:
@@ -1203,23 +1217,23 @@ async def roll(ctx, *args):
                             numberOfRolls = int(regexReturn.group("rolls"))
 
                             if numberOfRolls >= ROLL_MAX_PARAM_VALUE:
-                                return await ctx.send(embed=invalidArgSizeSupplied())
+                                return await ctx.send(embed=invalidSizeSupplied(numberOfRolls))
 
                         except ValueError:
-                            return await ctx.send(embed=invalidArgsSupplied())
+                            return await ctx.send(embed=invalidArgSupplied(regexReturn.group("rolls")))
                     
                     # Checks the amount of sides supplied is a number and is valid
                     try:
                         numberOfSides = int(regexReturn.group("sides"))
 
                         if numberOfSides < 2 or numberOfSides >= ROLL_MAX_PARAM_VALUE:
-                            return await ctx.send(embed=invalidArgSizeSupplied())
+                            return await ctx.send(embed=invalidSizeSupplied(numberOfSides))
 
                     except ValueError:
-                        return await ctx.send(embed=invalidArgsSupplied())
+                        return await ctx.send(embed=invalidArgSupplied(regexReturn.group("sides")))
 
                 else:
-                    return await ctx.send(embed=invalidArgsSupplied())
+                    return await ctx.send(embed=invalidArgSupplied("NO DICE SIDES DETECTED! TRY CHECKING YOUR SYNTAX AND ?roll USAGE"))
                 
                 # Calculate dice rolls and append to the dict
                 for currentRoll in range(1, numberOfRolls + 1):
@@ -1234,8 +1248,8 @@ async def roll(ctx, *args):
 
                 # Append to embed
                 diceRollEmbed.add_field(
-                    name=f"__STEP {stepCount}__\n`{numberOfRolls}d{numberOfSides}` ROLLED |",
-                    value=f"{diceRollResults[argument]['results']}\n*TOTAL = {diceRollResults[argument]['sectionTotal']}*",
+                    name=f"__STEP { stepCount }__\n`{ numberOfRolls }d{ numberOfSides }` ROLLED |",
+                    value=f"{ diceRollResults[argument]['results'] }\n*TOTAL = { diceRollResults[argument]['sectionTotal'] }*",
                     inline=True
                 )
 
@@ -1271,8 +1285,8 @@ async def roll(ctx, *args):
                 
                 # Append to embed
                 diceRollEmbed.add_field(
-                    name=f"__STEP {stepCount}__\n`{currentOperator}` OPERATOR APPLIED! |",
-                    value=f"{previousTotal}\n**{currentOperator}**\n{diceRollResults[argument]['sectionTotal']}\n*TOTAL = {runningTotal}*",
+                    name=f"__STEP { stepCount }__\n`{ currentOperator }` OPERATOR APPLIED! |",
+                    value=f"{ previousTotal }\n**{ currentOperator }**\n{ diceRollResults[argument]['sectionTotal'] }\n*TOTAL = { runningTotal }*",
                     inline=True
                 )
 
@@ -1284,7 +1298,7 @@ async def roll(ctx, *args):
             stepCount += 1
 
     # Append final total and send embed
-    diceRollEmbed.insert_field_at(index=1, name="TOTAL", value=f"`{runningTotal}`", inline=False)
+    diceRollEmbed.insert_field_at(index=1, name="TOTAL", value=f"`{ runningTotal }`", inline=False)
     print(f"SENDING EMBED: { diceRollEmbed.title }...")
     await ctx.send(embed=diceRollEmbed)
     print("DONE!")
@@ -1307,7 +1321,7 @@ async def search(ctx, *args):
     # Sleep to wait for other stuff to complete first
     time.sleep(COMMAND_DELAY_SLEEP_VALUE)
     
-    print(f"Executing: ?search {args}")
+    print(f"Executing: ?search { args }")
 
     # Import & reset globals
     global partial_match
@@ -1354,9 +1368,6 @@ async def search(ctx, *args):
             title=f"See `{ entityFileName }` for all searchable entities in this endpoint", 
             description="Due to discord character limits regarding embeds, the results have to be sent in a file. Yes I know this is far from ideal but it's the best I can do!"
         )
-
-        detailsEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
-
         await ctx.send(embed=detailsEmbed)
 
         # Send entities file
@@ -1394,7 +1405,7 @@ async def search(ctx, *args):
     # No entity was found
     elif match == None:
         noMatchEmbed = discord.Embed(
-            colour=discord.Colour.orange(),
+            colour=discord.Colour.yellow(),
             title="ERROR", 
             description=f"No matches found for **{ filteredInput }** in the search endpoint"
         )
@@ -1448,7 +1459,7 @@ async def searchdir(ctx, *args):
     # Sleep to wait for other stuff to complete first
     time.sleep(COMMAND_DELAY_SLEEP_VALUE)
 
-    print(f"EXECUTING: ?searchdir {args}")
+    print(f"EXECUTING: ?searchdir { args }")
 
     # Import & reset globals
     global partial_match
@@ -1468,7 +1479,7 @@ async def searchdir(ctx, *args):
     # Verify we have arguments
     if len(args) <= 0:
         usageEmbed = discord.Embed(
-            colour=discord.Colour.red(),
+            colour=discord.Colour.orange(),
             title="No directory was requested.\nUSAGE: `?searchdir [DIRECTORY] [D&D OBJECT]`", 
             description=f"**Available Directories**\n{ ', '.join(directories) }"
         )
