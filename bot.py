@@ -1109,9 +1109,19 @@ async def roll(ctx, *args):
 
         return invalidOperatorEmbed
 
-    # START: Verify arg length isn't over limits
+    # START: Verify arg length isn't over or under limits
     if len(args) >= 201:
         return await ctx.send(embed=argLengthError())
+
+    if len(args) <= 0:
+        noArgsEmbed = discord.Embed(
+            color=discord.Colour.red(),
+            title="NO CALCULATION OR DICE ROLLS WERE REQUESTED",
+            description="**USAGE**\n`?roll [ROLLS]d[SIDES]`\n*Example:* `?roll 3d20 + 3`"
+        )
+        noArgsEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
+
+        return noArgsEmbed
 
     # Send command usage if no args are supplied
     if len(args) <= 0:
