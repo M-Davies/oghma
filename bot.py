@@ -28,6 +28,8 @@ CLIENT = discord.Client()
 
 SEARCH_PARAM_ENDPOINTS = ["spells", "monsters", "magicitems", "weapons"]
 NUMERIC_OPERATORS = ["+", "-", "*", "/"]
+COMMAND_LIST = ["ping", "roll", "search", "searchdir"]
+
 ROLL_MAX_PARAM_VALUE = 10001
 COMMAND_DELAY_SLEEP_VALUE = 1
 
@@ -35,7 +37,7 @@ COMMAND_DELAY_SLEEP_VALUE = 1
 logger = logging.getLogger('discord')
 logger.setLevel(logging.INFO)
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
-handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+handler.setFormatter(logging.Formatter('%(asctime)s: %(levelname)s: %(name)s: %(message)s'))
 logger.addHandler(handler)
 
 ###
@@ -997,44 +999,45 @@ def argLengthError():
 # FUNC DESC: Sends useful output on an error occurance to the user
 # FUNC TYPE: Event
 ###
+@BOT.event
 async def on_command_error(ctx, error):
 
     # Throw if discord failed to execute a command
-    if isinstance(error, commands.CommandInvokeError):
+    if isinstance(error, commands.CommandInvokeError) or isinstance(error, commands.BotMissingPermissions):
         invokeEmbed = discord.Embed(
             colour=discord.Colour.red(),
-            name="ERROR: COMMAND FAILED TO EXECUTE",
-            description=error
+            title="COMMAND FAILED TO EXECUTE",
+            description=f"Do I have the right permissions (Send messages, Embeds and Files as well as Read Message History)?\n\n__STACKTRACE__\n{error}"
         )
-        
-        invokeEmbed.add_field(name="NOTE", value="Please report this to https://github.com/shadowedlucario/oghma/issues stating how you encountered this bug and with the following infomation...", inline=False)
         
         invokeEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
 
+        print("SENDING CommandInvokeError / BotMissingPermissions EMBED...")
         return await ctx.send(embed=invokeEmbed)
 
     elif isinstance(error, commands.CommandNotFound):
         notFoundEmbed = discord.Embed(
             colour=discord.Colour.red(),
-            name="ERROR: COMMAND DOES NOT EXIST"
+            title="COMMAND DOES NOT EXIST",
+            description=f"Available commands are {COMMAND_LIST}"
         )
-        
         notFoundEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
 
+        print("SENDING CommandNotFound EMBED...")
         return await ctx.send(embed=notFoundEmbed)
 
     # Another unexpected error occurred
     else:
         unexpectedEmbed = discord.Embed(
             colour=discord.Colour.red(),
-            name="ERROR: UNEXPECTED EXCEPTION OCCURRED",
+            title="UNEXPECTED EXCEPTION OCCURRED",
             description=error
         )
-
         unexpectedEmbed.add_field(name="NOTE", value="Please report this to https://github.com/shadowedlucario/oghma/issues stating how you encountered this bug and with the following infomation...", inline=False)
         
         unexpectedEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
 
+        print("SENDING unexpectedEmbed EMBED...")
         return await ctx.send(embed=unexpectedEmbed)
 
 ###
