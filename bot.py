@@ -1015,6 +1015,7 @@ async def on_command_error(ctx, error):
         print("SENDING CommandInvokeError / BotMissingPermissions EMBED...")
         return await ctx.send(embed=invokeEmbed)
 
+    # Throw if the user tries to execute a command that doesn't exist
     elif isinstance(error, commands.CommandNotFound):
         notFoundEmbed = discord.Embed(
             colour=discord.Colour.red(),
