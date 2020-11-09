@@ -955,7 +955,8 @@ def constructResponse(args, route, matchedObj):
 # FUNC DESC: Generates a filename using type of file and random number
 # FUNC TYPE: Function
 ###
-def generateFileName(fileType): return f"{ fileType }-{ str(random.randrange(1,1000000)) }.txt"
+def generateFileName(fileType):
+    return f"{ os.getcwd() }/data/{ fileType }-{ str(random.randrange(1,1000000)) }.txt"
 
 ###
 # FUNC NAME: codeError
@@ -1369,7 +1370,7 @@ async def search(ctx, *args):
         # Send embed notifying start of the spam stream
         detailsEmbed = discord.Embed(
             colour=discord.Colour.orange(),
-            title=f"See `{ entityFileName }` for all searchable entities in this endpoint", 
+            title=f"See `{ entityFileName.split('/')[-1] }` for all searchable entities in this endpoint", 
             description="Due to discord character limits regarding embeds, the results have to be sent in a file. Yes I know this is far from ideal but it's the best I can do!"
         )
         await ctx.send(embed=detailsEmbed)
@@ -1564,7 +1565,7 @@ async def searchdir(ctx, *args):
         # Send embed notifying start of the spam stream
         detailsEmbed = discord.Embed(
             colour=discord.Colour.orange(),
-            title=f"See `{ entityDirFileName }` for all searchable entities in this endpoint", 
+            title=f"See `{ entityDirFileName.split('/')[-1] }` for all searchable entities in this endpoint", 
             description="Due to discord character limits regarding embeds, the results have to be sent in a file. Yes I know this is far from ideal but it's the best I can do!"
         )
 
