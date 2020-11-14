@@ -24,6 +24,7 @@ partial_match = False
 ### CONSTANTS ###
 BOTNAME = "Oghma"
 BOT = commands.Bot(command_prefix='?')
+BOT.remove_command('help') # Remove this as we make our own
 CLIENT = discord.Client()
 
 SEARCH_PARAM_ENDPOINTS = ["spells", "monsters", "magicitems", "weapons"]
@@ -63,9 +64,9 @@ def searchResponse(responseResults, filteredInput):
             if parse(entity["title"]) == filteredInput:
                 match = entity
                 break
-        
+
         elif "name" in entity:
-            
+
             if parse(entity["name"]) == filteredInput:
                 match = entity
                 break
@@ -84,7 +85,7 @@ def searchResponse(responseResults, filteredInput):
 
                     match = entity
                     break
-            
+
             elif "name" in entity:
 
                 if filteredInput in parse(entity["name"]):
@@ -94,16 +95,16 @@ def searchResponse(responseResults, filteredInput):
                     break
 
             else: match = "UNKNOWN"
-    
+
     return match
 
 ###
 # FUNC NAME: requestScryfall
-# FUNC DESC: Queries the Scryfall API to obtain a thumbnail image. 
+# FUNC DESC: Queries the Scryfall API to obtain a thumbnail image.
 # FUNC TYPE: Function
 ###
 def requestScryfall(searchTerm, searchdir):
-    
+
     scryfallRequest = requests.get(f"https://api.scryfall.com/cards/search?q={ ' '.join(searchTerm) }&include_extras=true&include_multilingual=true&include_variations=true")
 
     # Try again with the first arg if nothing was found
@@ -116,16 +117,16 @@ def requestScryfall(searchTerm, searchdir):
 
         if scryfallWordRequest.status_code != 200: return scryfallWordRequest.status_code
         else: return scryfallWordRequest.json()["data"][0]["image_uris"]["art_crop"]
-    
+
     # Return code if API request failed
     elif scryfallRequest.status_code != 200: return scryfallRequest.status_code
-    
+
     # Otherwise, return the cropped image url
     else: return scryfallRequest.json()["data"][0]["image_uris"]["art_crop"]
 
 ###
 # FUNC NAME: requestOpen5e
-# FUNC DESC: Queries the Open5e API. 
+# FUNC DESC: Queries the Open5e API.
 # FUNC TYPE: Function
 ###
 def requestOpen5e(query, filteredInput, wideSearch):
@@ -152,7 +153,7 @@ def requestOpen5e(query, filteredInput, wideSearch):
         # Determine filter type (search can only be used for some endpoints)
         filterType = "text"
         if route in SEARCH_PARAM_ENDPOINTS: filterType = "search"
-            
+
         if "title" in output:
             resourceRequest = requests.get(
                 f"https://api.open5e.com/{ route }?format=json&limit=10000&{ filterType }={ output['title'].split()[0] }"
@@ -163,7 +164,7 @@ def requestOpen5e(query, filteredInput, wideSearch):
             )
 
         # Return code if not successfull
-        if resourceRequest.status_code != 200: 
+        if resourceRequest.status_code != 200:
             return {
                 "code": resourceRequest.status_code,
                 "query": f"https://api.open5e.com/{ route }?format=json&limit=10000&search={ output['name'].split()[0] }"
@@ -196,7 +197,7 @@ def constructResponse(args, route, matchedObj):
         if len(matchedObj["desc"]) >= 2048:
             documentEmbed = discord.Embed(
                 colour=discord.Colour.green(),
-                title=f"{ matchedObj['title'] } (DOCUMENT)", 
+                title=f"{ matchedObj['title'] } (DOCUMENT)",
                 description=matchedObj["desc"][:2047],
                 url=docLink
             )
@@ -204,7 +205,7 @@ def constructResponse(args, route, matchedObj):
         else:
             documentEmbed = discord.Embed(
                 colour=discord.Colour.green(),
-                title=f"{ matchedObj['title'] } (DOCUMENT)", 
+                title=f"{ matchedObj['title'] } (DOCUMENT)",
                 description=matchedObj["desc"],
                 url=docLink
             )
@@ -224,7 +225,7 @@ def constructResponse(args, route, matchedObj):
         if len(matchedObj["desc"]) >= 2048:
             spellEmbed = discord.Embed(
                 colour=discord.Colour.green(),
-                title=f"{ matchedObj['name'] } (SPELL)", 
+                title=f"{ matchedObj['name'] } (SPELL)",
                 description=matchedObj["desc"][:2047],
                 url=spellLink
             )
@@ -232,14 +233,14 @@ def constructResponse(args, route, matchedObj):
         else:
             spellEmbed = discord.Embed(
                 colour=discord.Colour.green(),
-                title=matchedObj["name"], 
+                title=matchedObj["name"],
                 description=f"{ matchedObj['desc'] } (SPELL)",
                 url=spellLink
             )
 
-        if matchedObj["higher_level"] != "": 
+        if matchedObj["higher_level"] != "":
             spellEmbed.add_field(name="Higher Level", value=matchedObj["higher_level"], inline=False)
-        
+
         spellEmbed.add_field(name="School", value=matchedObj["school"], inline=False)
         spellEmbed.add_field(name="Level", value=matchedObj["level"], inline=True)
         spellEmbed.add_field(name="Duration", value=matchedObj["duration"], inline=True)
@@ -262,10 +263,10 @@ def constructResponse(args, route, matchedObj):
         monsterLink = f"https://open5e.com/monsters/{ matchedObj['slug'] }/"
         monsterEmbedBasics = discord.Embed(
             colour=discord.Colour.green(),
-            title=f"{ matchedObj['name'] } (MONSTER) - STATS", 
+            title=f"{ matchedObj['name'] } (MONSTER) - STATS",
             description="**TYPE**: {}\n**SUBTYPE**: {}\n**ALIGNMENT**: {}\n**SIZE**: {}\n**CHALLENGE RATING**: {}".format(
-                matchedObj["type"] if matchedObj["type"] != "" else "None", 
-                matchedObj["subtype"] if matchedObj["subtype"] != "" else "None", 
+                matchedObj["type"] if matchedObj["type"] != "" else "None",
+                matchedObj["subtype"] if matchedObj["subtype"] != "" else "None",
                 matchedObj["alignment"] if matchedObj["alignment"] != "" else "None",
                 matchedObj["size"],
                 matchedObj["challenge_rating"]
@@ -359,20 +360,20 @@ def constructResponse(args, route, matchedObj):
 
         # Hit points/dice
         monsterEmbedBasics.add_field(
-            name=f"HIT POINTS (**{ str(matchedObj['hit_points']) }**)", 
-            value=matchedObj["hit_dice"], 
+            name=f"HIT POINTS (**{ str(matchedObj['hit_points']) }**)",
+            value=matchedObj["hit_dice"],
             inline=True
         )
 
         # Speeds
         monsterSpeeds = ""
-        for speedType, speed in matchedObj["speed"].items(): 
+        for speedType, speed in matchedObj["speed"].items():
             monsterSpeeds += f"**{ speedType }**: { speed }\n"
         monsterEmbedBasics.add_field(name="SPEED", value=monsterSpeeds, inline=True)
 
         # Armour
         monsterEmbedBasics.add_field(
-            name="ARMOUR CLASS", 
+            name="ARMOUR CLASS",
             value=f"{ str(matchedObj['armor_class']) } ({ matchedObj['armor_desc'] })",
             inline=True
         )
@@ -389,7 +390,7 @@ def constructResponse(args, route, matchedObj):
         # Skills & Perception
         if matchedObj["skills"] != {}:
             monsterSkills = ""
-            for skillName, skillValue in matchedObj["skills"].items(): 
+            for skillName, skillValue in matchedObj["skills"].items():
                 monsterSkills += f"**{ skillName }**: { skillValue }\n"
             monsterEmbedSkills.add_field(name="SKILLS", value=monsterSkills, inline=True)
 
@@ -405,7 +406,7 @@ def constructResponse(args, route, matchedObj):
             value="**VULNERABLE TO:** {}\n**RESISTANT TO:** {}\n**IMMUNE TO:** {}".format(
                 matchedObj["damage_vulnerabilities"] if matchedObj["damage_vulnerabilities"] != "" else "Nothing",
                 matchedObj["damage_resistances"] if matchedObj["damage_resistances"] != "" else "Nothing",
-                matchedObj["damage_immunities"] if matchedObj["damage_immunities"] != "" else "Nothing" 
+                matchedObj["damage_immunities"] if matchedObj["damage_immunities"] != "" else "Nothing"
                     + ", "
                         + matchedObj["condition_immunities"] if matchedObj["condition_immunities"] != None else "Nothing",
             ),
@@ -428,7 +429,7 @@ def constructResponse(args, route, matchedObj):
                 value=action["desc"],
                 inline=False
             )
-        
+
         # Reactions
         if matchedObj["reactions"] != "":
             for reaction in matchedObj["reactions"]:
@@ -463,7 +464,7 @@ def constructResponse(args, route, matchedObj):
 
             # Function to split the spell link down (e.g. https://api.open5e.com/spells/light/), [:-1] removes trailing whitespace
             def splitSpell(spellName): return spellName.replace("-", " ").split("/")[:-1]
-            
+
             for spell in matchedObj["spell_list"]:
                 spellSplit = splitSpell(spell)
 
@@ -511,9 +512,9 @@ def constructResponse(args, route, matchedObj):
         )
 
         # Profs
-        if matchedObj["tool_proficiencies"] != None: 
+        if matchedObj["tool_proficiencies"] != None:
             backgroundEmbed.add_field(
-                name="PROFICIENCIES", 
+                name="PROFICIENCIES",
                 value=f"**SKILLS**: { matchedObj['skill_proficiencies'] }\n**TOOLS**: { matchedObj['tool_proficiencies'] }",
                 inline=True
             )
@@ -525,7 +526,7 @@ def constructResponse(args, route, matchedObj):
             )
 
         # Languages
-        if matchedObj["languages"] != None: 
+        if matchedObj["languages"] != None:
             backgroundEmbed.add_field(name="LANGUAGES", value=matchedObj["languages"], inline=True)
 
         # Equipment
@@ -535,7 +536,7 @@ def constructResponse(args, route, matchedObj):
         backgroundEmbed.add_field(name=matchedObj["feature"], value=matchedObj["feature_desc"], inline=False)
 
         responses.append(backgroundEmbed)
-        
+
         # 2nd Embed (feature)
         backgroundFeatureEmbed = discord.Embed(
             colour=discord.Colour.green(),
@@ -585,7 +586,7 @@ def constructResponse(args, route, matchedObj):
 
                 responses.append(bckFileName)
 
-        for response in responses: 
+        for response in responses:
             if isinstance(response, discord.Embed):
                 response.set_thumbnail(url="https://i.imgur.com/GhGODan.jpg")
 
@@ -604,10 +605,10 @@ def constructResponse(args, route, matchedObj):
 
     # Section
     elif "section" in route:
-        
+
         secLink = f"https://open5e.com/sections/{ matchedObj['slug'] }/"
         if len(matchedObj["desc"]) >= 2048:
-            
+
             sectionEmbedDesc = discord.Embed(
                 colour=discord.Colour.green(),
                 title=f"{ matchedObj['name'] } (SECTION) - { matchedObj['parent'] }",
@@ -744,7 +745,7 @@ def constructResponse(args, route, matchedObj):
 
                 subraceEmbed.set_thumbnail(url="https://i.imgur.com/OUSzh8W.jpg")
                 responses.append(subraceEmbed)
-    
+
     # Class
     elif "class" in route:
 
@@ -851,10 +852,10 @@ def constructResponse(args, route, matchedObj):
                     responses.append(clsArchFileName)
 
         # Finish up
-        for response in responses: 
+        for response in responses:
             if isinstance(response, discord.Embed):
                 response.set_thumbnail(url="https://i.imgur.com/Mjh6AAi.jpg")
-   
+
     # Magic Item
     elif "magicitem" in route:
         itemLink = f"https://open5e.com/magicitems/{ matchedObj['slug'] }"
@@ -890,7 +891,7 @@ def constructResponse(args, route, matchedObj):
                 url=itemLink
             )
             responses.append(magicItemEmbed)
-        
+
         for response in responses:
             if isinstance(response, discord.Embed):
                 response.add_field(name="TYPE", value=matchedObj["type"], inline=True)
@@ -923,11 +924,11 @@ def constructResponse(args, route, matchedObj):
         weaponEmbed.add_field(name="WEIGHT", value=matchedObj["weight"], inline=True)
         weaponEmbed.add_field(name="COST", value=matchedObj["cost"], inline=True)
         weaponEmbed.add_field(name="CATEGORY", value=matchedObj["category"], inline=False)
-        
+
         weaponEmbed.set_thumbnail(url="https://i.imgur.com/pXEe4L9.png")
 
         responses.append(weaponEmbed)
-    
+
     else:
         global partial_match
         partial_match = False
@@ -944,7 +945,7 @@ def constructResponse(args, route, matchedObj):
             description=f"Please create an issue describing this failure and with the following values at https://github.com/shadowedlucario/oghma/issues\n**Input**: { args }\n**Route**: { route }\n**Troublesome Object**: SEE `{ badObjectFilename }`"
         )
         noRouteEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-        
+
         responses.append(noRouteEmbed)
         responses.append(badObjectFilename)
 
@@ -965,10 +966,10 @@ def generateFileName(fileType): return f"{ fileType }-{ str(random.randrange(1,1
 def codeError(statusCode, query):
     codeEmbed = discord.Embed(
         colour=discord.Colour.red(),
-        title=f"ERROR - API Request FAILED. Status Code: **{ str(statusCode) }**", 
+        title=f"ERROR - API Request FAILED. Status Code: **{ str(statusCode) }**",
         description=f"Query: { query }"
     )
-        
+
     codeEmbed.add_field(
         name="For more idea on what went wrong:",
         value="See status codes at https://www.django-rest-framework.org/api-guide/status-codes/",
@@ -1009,7 +1010,7 @@ async def on_command_error(ctx, error):
             title="COMMAND FAILED TO EXECUTE",
             description=f"Do I have the right permissions (Send messages, Embeds and Files as well as Read Message History)?\n\n__STACKTRACE__\n{error}"
         )
-        
+
         invokeEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
 
         print("SENDING CommandInvokeError / BotMissingPermissions EMBED...")
@@ -1035,7 +1036,7 @@ async def on_command_error(ctx, error):
             description=error
         )
         unexpectedEmbed.add_field(name="NOTE", value="Please report this to https://github.com/shadowedlucario/oghma/issues stating how you encountered this bug and with the following infomation...", inline=False)
-        
+
         unexpectedEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
 
         print("SENDING unexpectedEmbed EMBED...")
@@ -1054,13 +1055,42 @@ async def on_ready():
     print("READY!")
 
 ###
-# FUNC NAME: ?ping
-# FUNC DESC: Ping's the bot to check it is live
+# FUNC NAME: ?help
+# FUNC DESC: Displays a help message that shows the bot is live
 # FUNC TYPE: Command
 ###
-@BOT.command(name='ping', help='Pings the bot.\nUsage: !ping')
-async def ping(ctx):
-    await ctx.send('Pong!')
+@BOT.command(
+    name='help',
+    help='Displays a help message that shows the bot is live.\nUsage: !ping',
+    usage='?help',
+    aliases=["h", "H", "ping", "p"]
+)
+async def help(ctx, *args):
+
+    helpEmbed=discord.Embed(
+        title="Oghma",
+        url="https://top.gg/bot/658336624647733258",
+        description="__Available commands__\n\n**?help** - Displays this message (duh)\n\n**?roll [ROLLS]d[SIDES]** - Dice roller with calculator logic\n\n**?search [ENTITY]** - Searches the whole Open5e D&D database for your chosen entity.\n\n**?searchdir [RESOURCE] [ENTITY]** - Searches a specific category of the Open5e D&D database for your chosen entity a lot faster than *?search*.",
+        color=discord.Colour.purple()
+    )
+
+    helpEmbed.set_author(
+        name="Intoxication#6666",
+        url="https://github.com/shadowedlucario",
+        icon_url="https://github.com/shadowedlucario.png"
+    )
+
+    helpEmbed.set_thumbnail(url="https://i.imgur.com/HxuMICy.jpg")
+
+    # Add 1 to latency as we sleep for 1 sec before every command
+    helpEmbed.add_field(name="CURRENT LATENCY", value=f"{ 1 + round(BOT.latency, 1) } seconds", inline=False)
+
+    helpEmbed.add_field(name="LINKS", value="------------------", inline=False)
+    helpEmbed.add_field(name="GitHub", value="https://github.com/shadowedlucario/oghma", inline=True)
+    helpEmbed.add_field(name="Discord", value="https://discord.gg/8YZ2NZ5", inline=True)
+    helpEmbed.set_footer(text="Feedback? Hate? Make it known to us! (see links above)")
+
+    return await ctx.send(embed=helpEmbed)
 
 ###
 # FUNC NAME: ?roll
@@ -1079,7 +1109,7 @@ async def roll(ctx, *args):
     time.sleep(COMMAND_DELAY_SLEEP_VALUE)
 
     print(f"Executing: ?roll { args }")
-    
+
     # Return invalid args embed (to be called later)
     def invalidArgSupplied(culprit):
         invalidArgsEmbed = discord.Embed(
@@ -1101,7 +1131,7 @@ async def roll(ctx, *args):
         invalidSizeEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
 
         return invalidSizeEmbed
-    
+
     # Return invalid numberic operator embed (to be called later)
     def unrecognisedNumericOperator(numericOperator):
         invalidOperatorEmbed = discord.Embed(
@@ -1128,7 +1158,7 @@ async def roll(ctx, *args):
 
         return await ctx.send(embed=rollUsageEmbed)
 
-    # Init response embed
+    # Init response embed
     diceRollEmbed = discord.Embed(
         color=discord.Colour.purple()
     )
@@ -1138,17 +1168,17 @@ async def roll(ctx, *args):
 
     # Initialise nested result dictionary. Example for query `?r 3d8 + 8`:
     # {
-    #   "3d8" : { 
+    #   "3d8" : {
     #               "results" : ['4', '8', '1'],
     #               "sectionTotal" : 13.0,
     #               "cumulativeTotal" : 13.0
     #   },
-    #   "+" : { 
+    #   "+" : {
     #               "results" : [],
     #               "sectionTotal" : 0.0,
     #               "cumulativeTotal" : 13.0
     #   },
-    #   "8" : { 
+    #   "8" : {
     #               "results" : [],
     #               "sectionTotal" : 8.0,
     #               "cumulativeTotal" : 21.0
@@ -1169,7 +1199,7 @@ async def roll(ctx, *args):
             "cumulativeTotal" : runningTotal
         }
 
-        # If arg is a operator, isn't the first character and is a single char 
+        # If arg is a operator, isn't the first character and is a single char
         if argument in NUMERIC_OPERATORS:
             if args.index(argument) != 0:
                 if len(argument) == 1:
@@ -1201,7 +1231,7 @@ async def roll(ctx, *args):
                     diceRollResults[argument]["sectionTotal"] = numCheck
                 else:
                     return await ctx.send(embed=invalidSizeSupplied(numCheck))
-            
+
             # If it's a dice...
             else:
 
@@ -1225,7 +1255,7 @@ async def roll(ctx, *args):
 
                         except ValueError:
                             return await ctx.send(embed=invalidArgSupplied(regexReturn.group("rolls")))
-                    
+
                     # Checks the amount of sides supplied is a number and is valid
                     try:
                         numberOfSides = int(regexReturn.group("sides"))
@@ -1238,7 +1268,7 @@ async def roll(ctx, *args):
 
                 else:
                     return await ctx.send(embed=invalidArgSupplied("NO DICE SIDES DETECTED! TRY CHECKING YOUR SYNTAX AND ?roll USAGE"))
-                
+
                 # Calculate dice rolls and append to the dict
                 for currentRoll in range(1, numberOfRolls + 1):
                     diceRollResults[argument]["results"].append(random.randint(1.0, numberOfSides))
@@ -1247,7 +1277,7 @@ async def roll(ctx, *args):
                 diceSectionTotal = 0
                 for currentResult in diceRollResults[argument]["results"]:
                     diceSectionTotal += currentResult
-                
+
                 diceRollResults[argument]["sectionTotal"] = diceSectionTotal
 
                 # Append to embed
@@ -1286,7 +1316,7 @@ async def roll(ctx, *args):
                     runningTotal = previousTotal / runningTotal
                 else:
                     return await ctx.send(embed=unrecognisedNumericOperator(currentOperator))
-                
+
                 # Append to embed
                 diceRollEmbed.add_field(
                     name=f"__STEP { stepCount }__\n`{ currentOperator }` OPERATOR APPLIED! |",
@@ -1295,7 +1325,7 @@ async def roll(ctx, *args):
                 )
 
                 currentOperator = ""
-            
+
             # Calculate the total for the whole query so far
             diceRollResults[argument]["cumulativeTotal"] = runningTotal
 
@@ -1324,7 +1354,7 @@ async def search(ctx, *args):
 
     # Sleep to wait for other stuff to complete first
     time.sleep(COMMAND_DELAY_SLEEP_VALUE)
-    
+
     print(f"Executing: ?search { args }")
 
     # Import & reset globals
@@ -1347,7 +1377,7 @@ async def search(ctx, *args):
         # Get objects from directory, store in txt file
         directoryRequest = requests.get("https://api.open5e.com/search/?format=json&limit=10000")
 
-        if directoryRequest.status_code != 200: 
+        if directoryRequest.status_code != 200:
             return await ctx.send(embed=codeError(
                 directoryRequest.status_code,
                 "https://api.open5e.com/search/?format=json&limit=10000"
@@ -1380,13 +1410,13 @@ async def search(ctx, *args):
     # Filter input to remove whitespaces and set lowercase
     filteredInput = "".join(args).lower()
 
-    # Search API
+    # Search API
     await ctx.send(embed=discord.Embed(
         color=discord.Colour.blue(),
         title=f"SEARCHING ALL ENDPOINTS FOR { filteredInput }...",
         description="WARNING: This may take a while!"
     ))
-    
+
     # Use first word to narrow search results down for quicker response on some directories
     match = requestOpen5e(f"https://api.open5e.com/search/?format=json&limit=10000&text={ str(args[0]) }", filteredInput, True)
 
@@ -1398,7 +1428,7 @@ async def search(ctx, *args):
     elif match == "UNKNOWN":
         unknownMatchEmbed = discord.Embed(
             colour=discord.Colour.red(),
-            title="ERROR", 
+            title="ERROR",
             description="I found an entity in the API database that doesn't contain a `name` or `document` attribute. Please report this to https://github.com/shadowedlucario/oghma/issues"
         )
 
@@ -1410,7 +1440,7 @@ async def search(ctx, *args):
     elif match == None:
         noMatchEmbed = discord.Embed(
             colour=discord.Colour.yellow(),
-            title="ERROR", 
+            title="ERROR",
             description=f"No matches found for **{ filteredInput }** in the search endpoint"
         )
 
@@ -1431,7 +1461,7 @@ async def search(ctx, *args):
                 if (not isinstance(image, int)): response.set_thumbnail(url=image)
 
                 # Note partial match in footer of embed
-                if partial_match: 
+                if partial_match:
                     response.set_footer(text=f"NOTE: Your search term ({ filteredInput }) was a PARTIAL match to this entity.\nIf this isn't the entity you were expecting, try refining your search term or use ?searchdir instead")
                 else:
                     response.set_footer(text="NOTE: If this isn't the entity you were expecting, try refining your search term or use `?searchdir` instead")
@@ -1454,7 +1484,7 @@ async def search(ctx, *args):
 ###
 @BOT.command(
     name='searchdir',
-    help='Queries the Open5e API to get the entities infomation from the specified resource.',
+    help='Queries the Open5e API to get entities infomation from specified resource.',
     usage='?search [RESOURCE] [ENTITY]',
     aliases=["dir", "d", "D"]
 )
@@ -1475,7 +1505,7 @@ async def searchdir(ctx, *args):
     # Throw if Root request wasn't successfull
     if rootRequest.status_code != 200:
         return await ctx.send(embed=codeError(rootRequest.status_code, "https://api.open5e.com?format=json"))
-    
+
     # Remove search endpoint from list (not used in this command)
     directories = list(rootRequest.json().keys())
     directories.remove("search")
@@ -1484,7 +1514,7 @@ async def searchdir(ctx, *args):
     if len(args) <= 0:
         usageEmbed = discord.Embed(
             colour=discord.Colour.orange(),
-            title="No directory was requested.\nUSAGE: `?searchdir [DIRECTORY] [D&D OBJECT]`", 
+            title="No directory was requested.\nUSAGE: `?searchdir [DIRECTORY] [D&D OBJECT]`",
             description=f"**Available Directories**\n{ ', '.join(directories) }"
         )
 
@@ -1507,7 +1537,7 @@ async def searchdir(ctx, *args):
 
         noResourceEmbed = discord.Embed(
             colour=discord.Colour.orange(),
-            title=f"Requested Directory (`{ str(args[0]) }`) is not a valid directory name", 
+            title=f"Requested Directory (`{ str(args[0]) }`) is not a valid directory name",
             description=f"**Available Directories**\n{ ', '.join(directories) }"
         )
 
@@ -1527,7 +1557,7 @@ async def searchdir(ctx, *args):
         # Get objects from directory, store in txt file
         directoryRequest = requests.get(f"https://api.open5e.com/{ filteredDictionary }?format=json&limit=10000")
 
-        if directoryRequest.status_code != 200: 
+        if directoryRequest.status_code != 200:
             return await ctx.send(embed=codeError(
                 directoryRequest.status_code,
                 f"https://api.open5e.com/{ filteredDictionary }?format=json&limit=10000"
@@ -1544,7 +1574,7 @@ async def searchdir(ctx, *args):
 
             detailsEmbed = discord.Embed(
                 colour=discord.Colour.orange(),
-                title="All searchable entities in this endpoint", 
+                title="All searchable entities in this endpoint",
                 description="\n".join(entityNames)
             )
 
@@ -1564,7 +1594,7 @@ async def searchdir(ctx, *args):
         # Send embed notifying start of the spam stream
         detailsEmbed = discord.Embed(
             colour=discord.Colour.orange(),
-            title=f"See `{ entityDirFileName }` for all searchable entities in this endpoint", 
+            title=f"See `{ entityDirFileName }` for all searchable entities in this endpoint",
             description="Due to discord character limits regarding embeds, the results have to be sent in a file. Yes I know this is far from ideal but it's the best I can do!"
         )
 
@@ -1579,7 +1609,7 @@ async def searchdir(ctx, *args):
 
     # search/ endpoint is best used with the dedicated ?search command
     if "search" in filteredDictionary:
-        
+
         # Remove search endpoint from list
         directories = list(rootRequest.json().keys())
         directories.remove("search")
@@ -1595,13 +1625,13 @@ async def searchdir(ctx, *args):
 
         return await ctx.send(embed=searchEmbed)
 
-    # Search API
+    # Search API
     await ctx.send(embed=discord.Embed(
         color=discord.Colour.blue(),
         title=f"SEARCHING { filteredDictionary.upper() } ENDPOINT FOR { filteredInput }...",
         description="WARNING: This may take a while!"
     ))
-    
+
     # Determine filter type (search can only be used for some endpoints)
     filterType = "text"
     if args[0] in SEARCH_PARAM_ENDPOINTS: filterType = "search"
@@ -1621,7 +1651,7 @@ async def searchdir(ctx, *args):
     elif match == "UNKNOWN":
         unknownMatchEmbed = discord.Embed(
             colour=discord.Colour.red(),
-            title="ERROR", 
+            title="ERROR",
             description="I found an entity in the API database that doesn't contain a `name` or `document` attribute. Please report this to https://github.com/shadowedlucario/oghma/issues"
         )
 
@@ -1633,7 +1663,7 @@ async def searchdir(ctx, *args):
     elif match == None:
         noMatchEmbed = discord.Embed(
             colour=discord.Colour.orange(),
-            title="ERROR", 
+            title="ERROR",
             description=f"No matches found for **{ filteredInput.upper() }** in the { filteredDictionary } endpoint"
         )
 
@@ -1645,7 +1675,7 @@ async def searchdir(ctx, *args):
     else:
         responses = constructResponse(args, filteredDictionary, match)
         for response in responses:
-            
+
             if isinstance(response, discord.Embed):
 
                 # Set a thumbnail for relevant embeds and on successful Scryfall request, overwrites other thumbnail setup
@@ -1654,7 +1684,7 @@ async def searchdir(ctx, *args):
                 if (not isinstance(image, int)): response.set_thumbnail(url=image)
 
                 # Note partial match in footer of embed
-                if partial_match: 
+                if partial_match:
                     response.set_footer(text=f"NOTE: Your search term ({ filteredInput }) was a PARTIAL match to this entity.\nIf this isn't the entity you were expecting, try refining your search term")
 
                 print(f"SENDING EMBED: { response.title }...")
