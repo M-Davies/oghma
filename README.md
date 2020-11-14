@@ -16,7 +16,11 @@ Sometimes more than one embed or even files need to be sent due to discord API c
 
 ## Commands
 
-NOTE: Most commands enforce a word limit of 200 words per query
+NOTE: Most commands enforce a word limit of 200 words per query.
+
+### ?help
+
+Display bot latency, author information (me!) and useful data. Pretty simple tbh.
 
 ### ?roll [ROLLS]d[SIDES]
 
