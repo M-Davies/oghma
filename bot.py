@@ -142,7 +142,7 @@ def requestOpen5e(query, filteredInput, wideSearch):
 
     if output == None: return output
 
-    elif output == "UNKNOWN": return "UNKNOWN"
+    elif output == "UNKNOWN": return output
 
     # Find resource object if coming from search endpoint
     elif wideSearch:
@@ -173,7 +173,7 @@ def requestOpen5e(query, filteredInput, wideSearch):
         # Search response again for the actual object
         resourceOutput = searchResponse(resourceRequest.json()["results"], filteredInput)
 
-        if resourceOutput == "UNKNOWN": return "UNKNOWN"
+        if resourceOutput == "UNKNOWN": return resourceOutput
 
         return {"route": route, "matchedObj": resourceOutput}
 
