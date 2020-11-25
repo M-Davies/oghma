@@ -1,7 +1,7 @@
 ###
 # Project: oghma
-# Author: shadowedlucario
-# https://github.com/shadowedlucario
+# Author: M-Davies
+# https://github.com/M-Davies/oghma
 ###
 
 import os

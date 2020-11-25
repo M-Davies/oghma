@@ -1,7 +1,7 @@
 ###
 # Project: oghma
-# Author: shadowedlucario
-# https://github.com/shadowedlucario
+# Author: M-Davies
+# https://github.com/M-Davies/oghma
 ###
 
 import os
@@ -942,7 +942,7 @@ def constructResponse(args, route, matchedObj):
         noRouteEmbed = discord.Embed(
             colour=discord.Colour.red(),
             title="The matched item's type (i.e. spell, monster, etc) was not recognized",
-            description=f"Please create an issue describing this failure and with the following values at https://github.com/shadowedlucario/oghma/issues\n**Input**: { args }\n**Route**: { route }\n**Troublesome Object**: SEE `{ badObjectFilename }`"
+            description=f"Please create an issue describing this failure and with the following values at https://github.com/M-Davies/oghma/issues\n**Input**: { args }\n**Route**: { route }\n**Troublesome Object**: SEE `{ badObjectFilename }`"
         )
         noRouteEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
 
@@ -1035,7 +1035,7 @@ async def on_command_error(ctx, error):
             title="UNEXPECTED EXCEPTION OCCURRED",
             description=error
         )
-        unexpectedEmbed.add_field(name="NOTE", value="Please report this to https://github.com/shadowedlucario/oghma/issues stating how you encountered this bug and with the following infomation...", inline=False)
+        unexpectedEmbed.add_field(name="NOTE", value="Please report this to https://github.com/M-Davies/oghma/issues stating how you encountered this bug and with the following infomation...", inline=False)
 
         unexpectedEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
 
@@ -1076,8 +1076,8 @@ async def help(ctx, *args):
 
     helpEmbed.set_author(
         name="Intoxication#6666",
-        url="https://github.com/shadowedlucario",
-        icon_url="https://github.com/shadowedlucario.png"
+        url="https://github.com/M-Davies",
+        icon_url="https://github.com/M-Davies.png"
     )
 
     helpEmbed.set_thumbnail(url="https://i.imgur.com/HxuMICy.jpg")
@@ -1086,7 +1086,7 @@ async def help(ctx, *args):
     helpEmbed.add_field(name="CURRENT LATENCY", value=f"{ 1 + round(BOT.latency, 1) } seconds", inline=False)
 
     helpEmbed.add_field(name="LINKS", value="------------------", inline=False)
-    helpEmbed.add_field(name="GitHub", value="https://github.com/shadowedlucario/oghma", inline=True)
+    helpEmbed.add_field(name="GitHub", value="https://github.com/M-Davies/oghma", inline=True)
     helpEmbed.add_field(name="Discord", value="https://discord.gg/8YZ2NZ5", inline=True)
     helpEmbed.set_footer(text="Feedback? Hate? Make it known to us! (see links above)")
 
@@ -1429,7 +1429,7 @@ async def search(ctx, *args):
         unknownMatchEmbed = discord.Embed(
             colour=discord.Colour.red(),
             title="ERROR",
-            description="I found an entity in the API database that doesn't contain a `name` or `document` attribute. Please report this to https://github.com/shadowedlucario/oghma/issues"
+            description="I found an entity in the API database that doesn't contain a `name` or `document` attribute. Please report this to https://github.com/M-Davies/oghma/issues"
         )
 
         unknownMatchEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
@@ -1652,7 +1652,7 @@ async def searchdir(ctx, *args):
         unknownMatchEmbed = discord.Embed(
             colour=discord.Colour.red(),
             title="ERROR",
-            description="I found an entity in the API database that doesn't contain a `name` or `document` attribute. Please report this to https://github.com/shadowedlucario/oghma/issues"
+            description="I found an entity in the API database that doesn't contain a `name` or `document` attribute. Please report this to https://github.com/M-Davies/oghma/issues"
         )
 
         unknownMatchEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
