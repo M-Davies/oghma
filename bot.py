@@ -29,7 +29,7 @@ CLIENT = discord.Client()
 
 SEARCH_PARAM_ENDPOINTS = ["spells", "monsters", "magicitems", "weapons"]
 NUMERIC_OPERATORS = ["+", "-", "*", "/"]
-COMMAND_LIST = ["ping", "roll", "search", "searchdir"]
+COMMAND_LIST = ["roll", "search", "searchdir", "help"]
 
 ROLL_MAX_PARAM_VALUE = 10001
 COMMAND_DELAY_SLEEP_VALUE = 1
@@ -952,6 +952,13 @@ def constructResponse(args, route, matchedObj):
     return responses
 
 ###
+# FUNC NAME: getAliases
+# FUNC DESC: Gets all the aliases for the specific command
+# FUNC TYPE: Function
+###
+def getAliases(commandName): return BOT.get_command(commandName).aliases
+
+###
 # FUNC NAME: generateFileName
 # FUNC DESC: Generates a filename using type of file and random number
 # FUNC TYPE: Function
@@ -1061,16 +1068,16 @@ async def on_ready():
 ###
 @BOT.command(
     name='help',
-    help='Displays a help message that shows the bot is live.\nUsage: !ping',
+    help='Displays a help message that shows the bot is live.\nUsage: ?help',
     usage='?help',
     aliases=["h", "H", "ping", "p"]
 )
 async def help(ctx, *args):
-
+    # Add 1 to latency as we sleep for 1 sec before every command
     helpEmbed=discord.Embed(
         title="Oghma",
         url="https://top.gg/bot/658336624647733258",
-        description="__Available commands__\n\n**?help** - Displays this message (duh)\n\n**?roll [ROLLS]d[SIDES]** - Dice roller with calculator logic\n\n**?search [ENTITY]** - Searches the whole Open5e D&D database for your chosen entity.\n\n**?searchdir [RESOURCE] [ENTITY]** - Searches a specific category of the Open5e D&D database for your chosen entity a lot faster than *?search*.",
+        description=f"__Current Latency__\n\n{ 1 + round(BOT.latency, 1) } seconds\n\n__Available commands__\n\n**?help** - Displays this message (duh)\n\n**?roll [ROLLS]d[SIDES]** - Dice roller with calculator logic\n\n**?search [ENTITY]** - Searches the whole Open5e D&D database for your chosen entity.\n\n**?searchdir [RESOURCE] [ENTITY]** - Searches a specific category of the Open5e D&D database for your chosen entity a lot faster than *?search*.",
         color=discord.Colour.purple()
     )
 
@@ -1082,8 +1089,9 @@ async def help(ctx, *args):
 
     helpEmbed.set_thumbnail(url="https://i.imgur.com/HxuMICy.jpg")
 
-    # Add 1 to latency as we sleep for 1 sec before every command
-    helpEmbed.add_field(name="CURRENT LATENCY", value=f"{ 1 + round(BOT.latency, 1) } seconds", inline=False)
+    helpEmbed.add_field(name="ALIASES", value="------------------", inline=False)
+    for commandName in COMMAND_LIST:
+        helpEmbed.add_field(name=f"?{commandName}", value=getAliases(commandName), inline=True)
 
     helpEmbed.add_field(name="LINKS", value="------------------", inline=False)
     helpEmbed.add_field(name="GitHub", value="https://github.com/M-Davies/oghma", inline=True)
