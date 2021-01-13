@@ -32,7 +32,7 @@ NUMERIC_OPERATORS = ["+", "-", "*", "/"]
 COMMAND_LIST = ["roll", "search", "searchdir", "help"]
 
 ROLL_MAX_PARAM_VALUE = 10001
-COMMAND_DELAY_SLEEP_VALUE = 1
+COMMAND_DELAY_SLEEP_VALUE = 0.5
 
 # Set up logging
 logger = logging.getLogger('discord')
