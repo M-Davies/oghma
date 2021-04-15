@@ -1096,6 +1096,7 @@ async def help(ctx, *args):
     helpEmbed.add_field(name="LINKS", value="------------------", inline=False)
     helpEmbed.add_field(name="GitHub", value="https://github.com/M-Davies/oghma", inline=True)
     helpEmbed.add_field(name="Discord", value="https://discord.gg/8YZ2NZ5", inline=True)
+    helpEmbed.add_field(name="Sponsor/Donations", value="Want to encourage me to do more with the bot? Donations are more than welcome! -> https://github.com/sponsors/M-Davies", inline=True)
     helpEmbed.set_footer(text="Feedback? Hate? Make it known to us! (see links above)")
 
     return await ctx.send(embed=helpEmbed)
