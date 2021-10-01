@@ -2,4 +2,4 @@
 .env
 test.py
 discord.log
-*.txt
+data/*.md

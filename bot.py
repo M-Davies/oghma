@@ -573,8 +573,8 @@ def constructResponse(args, route, matchedObj):
 
                 responses.append(backgroundChars)
 
-                # Create characteristics.txt
-                characteristicsFile = open(bckFileName, "a+")
+                # Create characteristics file
+                characteristicsFile = open(f"data/{bckFileName}", "a+")
                 characteristicsFile.write(matchedObj["suggested_characteristics"])
                 characteristicsFile.close()
 
@@ -620,7 +620,7 @@ def constructResponse(args, route, matchedObj):
             responses.append(sectionEmbedDesc)
 
             # Full description as a file
-            secDescFile = open(sectionFilename, "a+")
+            secDescFile = open(f"data/{sectionFilename}", "a+")
             secDescFile.write(matchedObj["desc"])
             secDescFile.close()
             responses.append(sectionFilename)
@@ -768,13 +768,13 @@ def constructResponse(args, route, matchedObj):
         responses.append(classDescEmbed)
 
         # Full description as a file
-        descFile = open(clsDesFileName, "a+")
+        descFile = open(f"data/{clsDesFileName}", "a+")
         descFile.write(matchedObj["desc"])
         descFile.close()
         responses.append(clsDesFileName)
 
         # Class table as a file
-        tableFile = open(clsTblFileName, "a+")
+        tableFile = open(f"data/{clsTblFileName}", "a+")
         tableFile.write(matchedObj["table"])
         tableFile.close()
         responses.append(clsTblFileName)
@@ -839,7 +839,7 @@ def constructResponse(args, route, matchedObj):
 
                     responses.append(archTypeEmbed)
 
-                    archDesFile = open(clsArchFileName, "a+")
+                    archDesFile = open(f"data/{clsArchFileName}", "a+")
                     archDesFile.write(archtype["desc"])
                     archDesFile.close()
 
@@ -956,7 +956,7 @@ def getAliases(commandName):
 # FUNC TYPE: Function
 ###
 def generateFileName(fileType):
-    return f"{ fileType }-{ str(random.randrange(1,1000000)) }.txt"
+    return f"{ fileType }-{ str(random.randrange(1,1000000)) }.md"
 
 ###
 # FUNC NAME: codeError
@@ -1384,7 +1384,7 @@ async def search(ctx, *args):
             description="WARNING: This may take a while!"
         ))
 
-        # Get objects from directory, store in txt file
+        # Get objects from directory, store in file
         directoryRequest = requests.get("https://api.open5e.com/search/?format=json&limit=10000")
 
         if directoryRequest.status_code != 200:
@@ -1397,7 +1397,7 @@ async def search(ctx, *args):
         # Generate a unique filename and write to it
         entityFileName = generateFileName("entsearch")
 
-        entityFile = open(entityFileName, "a+")
+        entityFile = open(f"data/{entityFileName}", "a+")
         for entity in directoryRequest.json()["results"]:
             if "title" in entity.keys():
                 entityFile.write(f"{ entity['title'] }\n")
@@ -1415,7 +1415,7 @@ async def search(ctx, *args):
         await ctx.send(embed=detailsEmbed)
 
         # Send entities file
-        return await ctx.send(file=discord.File(entityFileName))
+        return await ctx.send(file=discord.File(f"data/{entityFileName}"))
 
     # Filter input to remove whitespaces and set lowercase
     filteredInput = "".join(args).lower()
@@ -1468,9 +1468,9 @@ async def search(ctx, *args):
                 print(f"SENDING EMBED: { response.title }...")
                 await ctx.send(embed=response)
 
-            elif ".txt" in response:
+            elif ".md" in response:
                 print(f"SENDING FILE: { response }...")
-                await ctx.send(file=discord.File(response))
+                await ctx.send(file=discord.File(f"data/{response}"))
 
     print("DONE!")
 
@@ -1541,7 +1541,7 @@ async def searchdir(ctx, *args):
             description="WARNING: This may take a while!"
         ))
 
-        # Get objects from directory, store in txt file
+        # Get objects from directory, store in file
         directoryRequest = requests.get(f"https://api.open5e.com/{ filteredDirectory }?format=json&limit=10000")
 
         if directoryRequest.status_code != 200:
@@ -1574,7 +1574,7 @@ async def searchdir(ctx, *args):
         # Generate a unique filename and write to it
         entityDirFileName = generateFileName("entsearchdir")
 
-        entityFile = open(entityDirFileName, "a+")
+        entityFile = open(f"data/{entityDirFileName}", "a+")
         entityFile.write("\n".join(entityNames))
         entityFile.close()
 
@@ -1592,7 +1592,7 @@ async def searchdir(ctx, *args):
         await ctx.send(embed=detailsEmbed)
 
         # Send entities file
-        return await ctx.send(file=discord.File(entityDirFileName))
+        return await ctx.send(file=discord.File(f"data/{entityDirFileName}"))
 
     # search/ directory is best used with the dedicated ?search command
     if "search" in filteredDirectory:
@@ -1654,9 +1654,9 @@ async def searchdir(ctx, *args):
                 print(f"SENDING EMBED: { response.title }...")
                 await ctx.send(embed=response)
 
-            elif ".txt" in response:
+            elif ".md" in response:
                 print(f"SENDING FILE: { response }...")
-                await ctx.send(file=discord.File(response))
+                await ctx.send(file=discord.File(f"data/{response}"))
 
     print("DONE!")
 
@@ -1742,7 +1742,7 @@ async def lst(ctx, *args):
         noMatchEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
         await ctx.send(embed=noMatchEmbed)
     else:
-        # Embeds have a max of 25 fields, so stick it in a txt doc if we can't fit all of them in
+        # Embeds have a max of 25 fields, so stick it in a file if we can't fit all of them in
         if len(matches) < 25:
             # Accumulate all matches into one embed
             matchesEmbed = discord.Embed(
@@ -1801,7 +1801,7 @@ async def lst(ctx, *args):
 
             # Create file and store matches in there
             matchesFileName = generateFileName("matches")
-            matchesFile = open(matchesFileName, "a+")
+            matchesFile = open(f"data/{matchesFileName}", "a+")
             matchesFile.write(formattedMatches)
             matchesFile.close()
 
@@ -1814,7 +1814,7 @@ async def lst(ctx, *args):
             print(f"SENDING EMBED: { matchesEmbed }...")
             await ctx.send(embed=matchesEmbed)
             print(f"SENDING FILE: { matchesFileName }...")
-            await ctx.send(file=discord.File(matchesFileName))
+            await ctx.send(file=discord.File(f"data/{matchesFileName}"))
 
     print("DONE!")
 
