@@ -12,6 +12,7 @@ import time
 import discord
 import logging
 import re
+import platform
 from discord.ext import commands
 
 # Import dotenv (it's troublesome to install on mac for some reason)
@@ -19,6 +20,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 ### CONSTANTS ###
+FILE_DELIMITER = "/"
+if platform.system() == "Windows":
+    FILE_DELIMITER = "\\"
 BOTNAME = "Oghma"
 BOT = commands.Bot(command_prefix='?')
 BOT.remove_command('help') # Remove this as we make our own
@@ -574,7 +578,7 @@ def constructResponse(args, route, matchedObj):
                 responses.append(backgroundChars)
 
                 # Create characteristics file
-                characteristicsFile = open(f"data/{bckFileName}", "a+")
+                characteristicsFile = open(f"data{FILE_DELIMITER}{bckFileName}", "a+")
                 characteristicsFile.write(matchedObj["suggested_characteristics"])
                 characteristicsFile.close()
 
@@ -620,7 +624,7 @@ def constructResponse(args, route, matchedObj):
             responses.append(sectionEmbedDesc)
 
             # Full description as a file
-            secDescFile = open(f"data/{sectionFilename}", "a+")
+            secDescFile = open(f"data{FILE_DELIMITER}{sectionFilename}", "a+")
             secDescFile.write(matchedObj["desc"])
             secDescFile.close()
             responses.append(sectionFilename)
@@ -768,13 +772,13 @@ def constructResponse(args, route, matchedObj):
         responses.append(classDescEmbed)
 
         # Full description as a file
-        descFile = open(f"data/{clsDesFileName}", "a+")
+        descFile = open(f"data{FILE_DELIMITER}{clsDesFileName}", "a+")
         descFile.write(matchedObj["desc"])
         descFile.close()
         responses.append(clsDesFileName)
 
         # Class table as a file
-        tableFile = open(f"data/{clsTblFileName}", "a+")
+        tableFile = open(f"data{FILE_DELIMITER}{clsTblFileName}", "a+")
         tableFile.write(matchedObj["table"])
         tableFile.close()
         responses.append(clsTblFileName)
@@ -839,7 +843,7 @@ def constructResponse(args, route, matchedObj):
 
                     responses.append(archTypeEmbed)
 
-                    archDesFile = open(f"data/{clsArchFileName}", "a+")
+                    archDesFile = open(f"data{FILE_DELIMITER}{clsArchFileName}", "a+")
                     archDesFile.write(archtype["desc"])
                     archDesFile.close()
 
@@ -871,7 +875,7 @@ def constructResponse(args, route, matchedObj):
 
             responses.append(magicItemEmbed)
 
-            itemFile = open(mIfileName, "a+")
+            itemFile = open(f"data{FILE_DELIMITER}{mIfileName}", "a+")
             itemFile.write(matchedObj["desc"])
             itemFile.close()
 
@@ -926,7 +930,7 @@ def constructResponse(args, route, matchedObj):
     else:
         badObjectFilename = generateFileName("badobject")
 
-        itemFile = open(badObjectFilename, "a+")
+        itemFile = open(f"data{FILE_DELIMITER}{badObjectFilename}", "a+")
         itemFile.write(matchedObj)
         itemFile.close()
 
@@ -1397,7 +1401,7 @@ async def search(ctx, *args):
         # Generate a unique filename and write to it
         entityFileName = generateFileName("entsearch")
 
-        entityFile = open(f"data/{entityFileName}", "a+")
+        entityFile = open(f"data{FILE_DELIMITER}{entityFileName}", "a+")
         for entity in directoryRequest.json()["results"]:
             if "title" in entity.keys():
                 entityFile.write(f"{ entity['title'] }\n")
@@ -1574,7 +1578,7 @@ async def searchdir(ctx, *args):
         # Generate a unique filename and write to it
         entityDirFileName = generateFileName("entsearchdir")
 
-        entityFile = open(f"data/{entityDirFileName}", "a+")
+        entityFile = open(f"data{FILE_DELIMITER}{entityDirFileName}", "a+")
         entityFile.write("\n".join(entityNames))
         entityFile.close()
 
@@ -1801,7 +1805,7 @@ async def lst(ctx, *args):
 
             # Create file and store matches in there
             matchesFileName = generateFileName("matches")
-            matchesFile = open(f"data/{matchesFileName}", "a+")
+            matchesFile = open(f"data{FILE_DELIMITER}{matchesFileName}", "a+")
             matchesFile.write(formattedMatches)
             matchesFile.close()
 
