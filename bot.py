@@ -1685,7 +1685,7 @@ async def lst(ctx, *args):
     if len(args) <= 0:
         usageEmbed = discord.Embed(
             colour=discord.Colour.orange(),
-            title="No entity was requested.\nUSAGE: `?lst [SEARCH TERM]`"
+            title="No entity was requested.\nUSAGE: `?lst [?DIRECTORY] [SEARCH TERM]`"
         )
         usageEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
         return await ctx.send(embed=usageEmbed)
