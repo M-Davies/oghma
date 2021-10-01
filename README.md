@@ -16,7 +16,10 @@ Sometimes more than one embed or even files need to be sent due to discord API c
 
 ## Commands
 
-NOTE: Most commands enforce a word limit of 200 words per query.
+- Most commands enforce a word limit of 200 words per query.
+- A placeholder called `[ENTITY]` translates to an ongoing phrase or sentance search term, with the first word in the sentance being used to optimise the query. For example, in the command `?search monsters frost giant`, frost giant will be treated as the search term with `frost` being the word that optimises the search.
+    - This means that you need to be careful where you put spaces and what word you place first in your query, as each will produce radically different results.
+    - For example, `?search monsters frostgiant` produces no results as there are no monsters that include the full search term `frostgiant`.
 
 ### ?help
 
@@ -47,37 +50,28 @@ Display bot latency, author information (me!) and useful data. Pretty simple tbh
 
 **ALIASES = `[sea, s, S]`**
 
-- Utilises the Open5e [search/](https://api.open5e.com/search/) endpoint to search the entire database for the ENTITY given. `search/` is like a directory (see below) that lists items in the database, but it also provides links and pointers to the original object in it's respective directory. This is how the bot will find your requested entity.
+- Utilises the Open5e [search/](https://api.open5e.com/search/) directory to search the entire database for the ENTITY given. `search/` is like a directory (see below) that lists items in the database, but it also provides links and pointers to the original object in it's respective directory. This is how the bot will find your requested entity.
 - This takes longer than `?searchdir` but provides a lot wider searchbase if you don't know what category your entity is in.
 
 ### ?searchdir [DIRECTORY] [ENTITY]
 
 **ALIASES = `[dir, d, D]`**
 
-- Searches a specific DIRECTORY in the Open5e database for the ENTITY. As of writing this, the total list of available directories is:
+- Searches a specific DIRECTORY in the Open5e database for the ENTITY. Check out the [Open5e API Root Page](https://api.open5e.com/) for the supported directories.
+- This is quicker than `?search`, with a smaller searchbase limited to the directory.
 
-```python
-"spells" # Contains spell names, effects and other stats (Fireball, Light, etc)
-"monsters" # Contains monster names, powers and other stats (Adult Black dragon, Kraken, etc)
-"documents" # Contains documents that open5e uses to populate their api & database (e.g. Tome Of Beasts, Creature Codex, etc)
-"backgrounds" # Contains background details and effects for PC's (e.g. Scoundrel)
-"planes" # Contains plane descriptions of what they are like (e.g. The Material Plane)
-"sections" # Basically a misc directory, this contains dnd entities of various categories (Armour, Alignment, etc)
-"feats" # Contains feat descriptions and prerequisites (e.g. Grappler)
-"conditions" # Contains condition effects (blinded, charmed, etc)
-"races" # Contains race effects and descriptions, including subraces (Dwarves, Elves, etc)
-"classes" # Contains class abilities and progression table, including subclasses (Wizard, Warrior, etc)
-"magicitems" # Contains magic artifact powers and restrictions (Deck of Many Things, Animated Shield, etc)
-"weapons" # Contains weapon stats and ranges (Longsword, Short bow, etc)
-```
+### ?lst [?DIRECTORY] [ENTITY]
 
-- This is quicker than `?search`, with a smaller searchbase limited to the directory
+**ALIASES = `[list, l, L]`**
 
-### How to add to your server
+- Returns a list of all the full and partial matches in Open5e as well as their parent directories. You could use this to narrow down repetitive search results or to find where a specific spell or item appears.
+- You can optionally add a `DIRECTORY` name to search for matches specifically within that directory or omit it to search the entire database for the requested entity.
+
+## How to add to your server
 
 We have a top.gg page! Assuming the link in the image above doesn't work, [click this text for a working link](https://top.gg/bot/658336624647733258)
 
-### Contributing
+## Contributing
 
 All contributions are welcome! Please join our [discord](https://discord.gg/8YZ2NZ5) and post a greeting in `#contributing` to get started. Also check out our [Testing.md](./TESTING.md) guide to setting up your own test bot to push new features and fixes (requires joining the discord)!
 It's just me working on the bot at the moment so any and all help would be appreciated :)

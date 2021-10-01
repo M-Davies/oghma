@@ -18,18 +18,15 @@ from discord.ext import commands
 from dotenv import load_dotenv
 load_dotenv()
 
-### GLOBALS ###
-partial_match = False
-
 ### CONSTANTS ###
 BOTNAME = "Oghma"
 BOT = commands.Bot(command_prefix='?')
 BOT.remove_command('help') # Remove this as we make our own
 CLIENT = discord.Client()
 
-SEARCH_PARAM_ENDPOINTS = ["spells", "monsters", "magicitems", "weapons"]
+SEARCH_PARAM_DIRECTORIES = ["spells", "monsters", "magicitems", "weapons"]
 NUMERIC_OPERATORS = ["+", "-", "*", "/"]
-COMMAND_LIST = ["roll", "search", "searchdir", "help"]
+COMMAND_LIST = ["roll", "search", "searchdir", "help", "lst"]
 
 ROLL_MAX_PARAM_VALUE = 10001
 COMMAND_DELAY_SLEEP_VALUE = 0.5
@@ -43,60 +40,36 @@ logger.addHandler(handler)
 
 ###
 # FUNC NAME: searchResponse
-# FUNC DESC: Searches the API response for the user input. Returns None if nothing was found
+# FUNC DESC: Searches the API response for the user input. Returns empty list if nothing was found
 # FUNC TYPE: Function
 ###
 def searchResponse(responseResults, filteredInput):
 
     # Sets entity name/title to lowercase and removes spaces
-    def parse(entityHeader): return entityHeader.replace(" ", "").lower()
+    def parse(entityHeader):
+        return entityHeader.replace(" ", "").lower()
 
-    global partial_match
-    match = None
+    matches = []
 
-    # First, look for an exact match after parsing
     for entity in responseResults:
 
         # Documents don't have a name attribute
         if "title" in entity:
 
-            # Has to be in it's own "if" to avoid KeyErrors
-            if parse(entity["title"]) == filteredInput:
-                match = entity
-                break
+            # Look for a partial match if no exact match can be found. Exact matches are pushed to front
+            if filteredInput == parse(entity["title"]):
+                matches.insert(0, {"entity": entity, "partial": False})
+            elif filteredInput in parse(entity["title"]):
+                matches.append({"entity": entity, "partial": True})
 
         elif "name" in entity:
 
-            if parse(entity["name"]) == filteredInput:
-                match = entity
-                break
+            if filteredInput == parse(entity["name"]):
+                matches.insert(0, {"entity": entity, "partial": False})
+            elif filteredInput in parse(entity["name"]):
+                matches.append({"entity": entity, "partial": True})
 
-        else: match = "UNKNOWN"
-
-    # Now try partially matching the entity (i.e. bluedragon will match adultbluedragon here)
-    if match == None or match == "UNKNOWN":
-
-        for entity in responseResults:
-
-            if "title" in entity:
-
-                if filteredInput in parse(entity["title"]):
-                    partial_match = True
-
-                    match = entity
-                    break
-
-            elif "name" in entity:
-
-                if filteredInput in parse(entity["name"]):
-                    partial_match = True
-
-                    match = entity
-                    break
-
-            else: match = "UNKNOWN"
-
-    return match
+    return matches
 
 ###
 # FUNC NAME: requestScryfall
@@ -111,74 +84,95 @@ def requestScryfall(searchTerm, searchdir):
     if scryfallRequest.status_code == 404:
 
         searchWord = searchTerm[0]
-        if searchdir: searchWord = searchTerm[1]
+        if searchdir:
+            searchWord = searchTerm[1]
 
         scryfallWordRequest = requests.get(f"https://api.scryfall.com/cards/search?q={ searchWord }&include_extras=true&include_multilingual=true&include_variations=true")
 
-        if scryfallWordRequest.status_code != 200: return scryfallWordRequest.status_code
-        else: return scryfallWordRequest.json()["data"][0]["image_uris"]["art_crop"]
+        if scryfallWordRequest.status_code != 200:
+            return scryfallWordRequest.status_code
+        else:
+            return scryfallWordRequest.json()["data"][0]["image_uris"]["art_crop"]
 
     # Return code if API request failed
-    elif scryfallRequest.status_code != 200: return scryfallRequest.status_code
+    elif scryfallRequest.status_code != 200:
+        return scryfallRequest.status_code
 
     # Otherwise, return the cropped image url
-    else: return scryfallRequest.json()["data"][0]["image_uris"]["art_crop"]
+    else:
+        return scryfallRequest.json()["data"][0]["image_uris"]["art_crop"]
+
+###
+# FUNC NAME: getFilterType
+# FUNC DESC: Calculates the filter type based on what is supported by open5e and the requested route to search
+# FUNC TYPE: Function
+###
+def getRequestType(route):
+    # Determine filter type (search can only be used for some directories)
+    if route in SEARCH_PARAM_DIRECTORIES:
+        return "search"
+    else:
+        return "text"
 
 ###
 # FUNC NAME: requestOpen5e
-# FUNC DESC: Queries the Open5e API.
+# FUNC DESC: Queries the Open5e API and returns an array of results
 # FUNC TYPE: Function
 ###
-def requestOpen5e(query, filteredInput, wideSearch):
+def requestOpen5e(query, filteredInput, wideSearch, listResults):
 
     # API Request
     request = requests.get(query)
 
     # Return code if not successfull
-    if request.status_code != 200: return {"code": request.status_code, "query": query}
+    if request.status_code != 200:
+        return {"code": request.status_code, "query": query}
 
     # Iterate through the results
-    output = searchResponse(request.json()["results"], filteredInput)
+    results = searchResponse(request.json()["results"], filteredInput)
 
-    if output == None: return output
+    if results == []:
+        # No full or partial matches were found
+        return []
+    elif listResults is True:
+        # Return all the full and partial matches
+        return results
+    else:
+        firstMatchedEntity = results[0]
+        if wideSearch is True:
+            # Request directory using the first word of the name to filter results
+            route = firstMatchedEntity['entity']["route"]
 
-    elif output == "UNKNOWN": return output
+            # Determine filter type (search can only be used for some directories)
+            filterType = getRequestType(route)
 
-    # Find resource object if coming from search endpoint
-    elif wideSearch:
+            if "title" in results:
+                directoryRequest = requests.get(
+                    f"https://api.open5e.com/{ route }?format=json&limit=10000&{ filterType }={ firstMatchedEntity['entity']['title'].split()[0] }"
+                )
+            else:
+                directoryRequest = requests.get(
+                    f"https://api.open5e.com/{ route }?format=json&limit=10000&{ filterType }={ firstMatchedEntity['entity']['name'].split()[0] }"
+                )
 
-        # Request resource using the first word of the name to filter results
-        route = output["route"]
+            # Return code if not successfull
+            if directoryRequest.status_code != 200:
+                return {
+                    "code": directoryRequest.status_code,
+                    "query": f"https://api.open5e.com/{ route }?format=json&limit=10000&search={ firstMatchedEntity['entity']['name'].split()[0] }"
+                }
 
-        # Determine filter type (search can only be used for some endpoints)
-        filterType = "text"
-        if route in SEARCH_PARAM_ENDPOINTS: filterType = "search"
-
-        if "title" in output:
-            resourceRequest = requests.get(
-                f"https://api.open5e.com/{ route }?format=json&limit=10000&{ filterType }={ output['title'].split()[0] }"
-            )
+            # Search response again for the actual object, return empty array if none was found
+            actualMatch = searchResponse(directoryRequest.json()["results"], filteredInput)
+            if actualMatch != []:
+                actualMatch[0]["route"] = route
+                return actualMatch[0]
+            else:
+                return []
         else:
-            resourceRequest = requests.get(
-                f"https://api.open5e.com/{ route }?format=json&limit=10000&{ filterType }={ output['name'].split()[0] }"
-            )
+            # We already got a match, return it
+            return firstMatchedEntity
 
-        # Return code if not successfull
-        if resourceRequest.status_code != 200:
-            return {
-                "code": resourceRequest.status_code,
-                "query": f"https://api.open5e.com/{ route }?format=json&limit=10000&search={ output['name'].split()[0] }"
-            }
-
-        # Search response again for the actual object
-        resourceOutput = searchResponse(resourceRequest.json()["results"], filteredInput)
-
-        if resourceOutput == "UNKNOWN": return resourceOutput
-
-        return {"route": route, "matchedObj": resourceOutput}
-
-    # If already got the resource object, just return it
-    else: return output
 
 ###
 # FUNC NAME: constructResponse
@@ -930,9 +924,6 @@ def constructResponse(args, route, matchedObj):
         responses.append(weaponEmbed)
 
     else:
-        global partial_match
-        partial_match = False
-
         badObjectFilename = generateFileName("badobject")
 
         itemFile = open(badObjectFilename, "a+")
@@ -956,14 +947,16 @@ def constructResponse(args, route, matchedObj):
 # FUNC DESC: Gets all the aliases for the specific command
 # FUNC TYPE: Function
 ###
-def getAliases(commandName): return BOT.get_command(commandName).aliases
+def getAliases(commandName):
+    return BOT.get_command(commandName).aliases
 
 ###
 # FUNC NAME: generateFileName
 # FUNC DESC: Generates a filename using type of file and random number
 # FUNC TYPE: Function
 ###
-def generateFileName(fileType): return f"{ fileType }-{ str(random.randrange(1,1000000)) }.txt"
+def generateFileName(fileType):
+    return f"{ fileType }-{ str(random.randrange(1,1000000)) }.txt"
 
 ###
 # FUNC NAME: codeError
@@ -999,7 +992,6 @@ def argLengthError():
         description="This command does not support more than 200 words in a single message. Try splitting up your query."
     )
     argLengthErrorEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-
     return argLengthErrorEmbed
 
 ###
@@ -1015,11 +1007,9 @@ async def on_command_error(ctx, error):
         invokeEmbed = discord.Embed(
             colour=discord.Colour.red(),
             title="COMMAND FAILED TO EXECUTE",
-            description=f"Do I have the right permissions (Send messages, Embeds and Files as well as Read Message History)?\n\n__STACKTRACE__\n{error}"
+            description=f"Do I have the right permissions (Send messages, Embeds and Files as well as Read Message History)?\n\n__ERROR__\n{error}"
         )
-
         invokeEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-
         print("SENDING CommandInvokeError / BotMissingPermissions EMBED...")
         return await ctx.send(embed=invokeEmbed)
 
@@ -1031,7 +1021,6 @@ async def on_command_error(ctx, error):
             description=f"Available commands are {COMMAND_LIST}"
         )
         notFoundEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-
         print("SENDING CommandNotFound EMBED...")
         return await ctx.send(embed=notFoundEmbed)
 
@@ -1043,9 +1032,7 @@ async def on_command_error(ctx, error):
             description=error
         )
         unexpectedEmbed.add_field(name="NOTE", value="Please report this to https://github.com/M-Davies/oghma/issues stating how you encountered this bug and with the following infomation...", inline=False)
-
         unexpectedEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-
         print("SENDING unexpectedEmbed EMBED...")
         return await ctx.send(embed=unexpectedEmbed)
 
@@ -1057,7 +1044,6 @@ async def on_command_error(ctx, error):
 @BOT.event
 async def on_ready():
     print(f"Logged in as\n{ BOT.user.name }\n{ BOT.user.id }\n------")
-
     # All done!
     print("READY!")
 
@@ -1077,7 +1063,7 @@ async def help(ctx, *args):
     helpEmbed=discord.Embed(
         title="Oghma",
         url="https://top.gg/bot/658336624647733258",
-        description=f"__Current Latency__\n\n{ 1 + round(BOT.latency, 1) } seconds\n\n__Available commands__\n\n**?help** - Displays this message (duh)\n\n**?roll [ROLLS]d[SIDES]** - Dice roller with calculator logic\n\n**?search [ENTITY]** - Searches the whole Open5e D&D database for your chosen entity.\n\n**?searchdir [RESOURCE] [ENTITY]** - Searches a specific category of the Open5e D&D database for your chosen entity a lot faster than *?search*.",
+        description=f"__Current Latency__\n\n{ 1 + round(BOT.latency, 1) } seconds\n\n__Available commands__\n\n**?help** - Displays this message (duh)\n\n**?roll [ROLLS]d[SIDES]** - Dice roller with calculator logic\n\n**?search [ENTITY]** - Searches the whole Open5e D&D database for your chosen entity.\n\n**?searchdir [DIRECTORY] [ENTITY]** - Searches a specific category of the Open5e D&D database for your chosen entity a lot faster than *?search*.\n\n**?lst [DIRECTORY] [ENTITY]** - Queries the API to get all the fully and partially matching entities based on the search term.",
         color=discord.Colour.purple()
     )
 
@@ -1100,6 +1086,25 @@ async def help(ctx, *args):
     helpEmbed.set_footer(text="Feedback? Hate? Make it known to us! (see links above)")
 
     return await ctx.send(embed=helpEmbed)
+
+
+###
+# FUNC NAME: getOpen5eRoot
+# FUNC DESC: Retrives the open5e root dir, which contains the directory urls and names
+# FUNC TYPE: Function
+###
+def getOpen5eRoot(ctx):
+    # Get API Root
+    rootRequest = requests.get("https://api.open5e.com?format=json")
+
+    if rootRequest.status_code == 200:
+        # Remove search directory from list (not used)
+        allDirectories = list(rootRequest.json().keys())
+        allDirectories.remove("search")
+        return allDirectories
+    else:
+        # Throw if Root request wasn't successfull
+        return rootRequest.status_code
 
 ###
 # FUNC NAME: ?roll
@@ -1152,7 +1157,7 @@ async def roll(ctx, *args):
 
         return invalidOperatorEmbed
 
-    # START: Verify arg length isn't over limits
+    # Verify arg length isn't over limits
     if len(args) >= 201:
         return await ctx.send(embed=argLengthError())
 
@@ -1366,10 +1371,6 @@ async def search(ctx, *args):
 
     print(f"Executing: ?search { args }")
 
-    # Import & reset globals
-    global partial_match
-    partial_match = False
-
     # Verify arg length isn't over limits
     if len(args) >= 201:
         return await ctx.send(embed=argLengthError())
@@ -1379,7 +1380,7 @@ async def search(ctx, *args):
 
         await ctx.send(embed=discord.Embed(
             color=discord.Colour.blue(),
-            title="GETTING ALL SEARCHABLE ENTITIES IN SEARCH/ ENDPOINT...",
+            title="GETTING ALL SEARCHABLE ENTITIES IN SEARCH/ DIRECTORY...",
             description="WARNING: This may take a while!"
         ))
 
@@ -1408,7 +1409,7 @@ async def search(ctx, *args):
         # Send embed notifying start of the spam stream
         detailsEmbed = discord.Embed(
             colour=discord.Colour.orange(),
-            title=f"See `{ entityFileName }` for all searchable entities in this endpoint", 
+            title=f"See `{ entityFileName }` for all searchable entities in this directory",
             description="Due to discord character limits regarding embeds, the results have to be sent in a file. Yes I know this is far from ideal but it's the best I can do!"
         )
         await ctx.send(embed=detailsEmbed)
@@ -1422,35 +1423,23 @@ async def search(ctx, *args):
     # Search API
     await ctx.send(embed=discord.Embed(
         color=discord.Colour.blue(),
-        title=f"SEARCHING ALL ENDPOINTS FOR { filteredInput }...",
+        title=f"SEARCHING ALL DIRECTORIES FOR { filteredInput }...",
         description="WARNING: This may take a while!"
     ))
 
     # Use first word to narrow search results down for quicker response on some directories
-    match = requestOpen5e(f"https://api.open5e.com/search/?format=json&limit=10000&text={ str(args[0]) }", filteredInput, True)
+    match = requestOpen5e(f"https://api.open5e.com/search/?format=json&limit=10000&text={ str(args[0]) }", filteredInput, True, False)
 
     # An API Request failed
     if isinstance(match, dict) and "code" in match.keys():
         return await ctx.send(embed=codeError(match["code"], match["query"]))
 
-    # Searching algorithm hit an invalid object
-    elif match == "UNKNOWN":
-        unknownMatchEmbed = discord.Embed(
-            colour=discord.Colour.red(),
-            title="ERROR",
-            description="I found an entity in the API database that doesn't contain a `name` or `document` attribute. Please report this to https://github.com/M-Davies/oghma/issues"
-        )
-
-        unknownMatchEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-
-        return await ctx.send(embed=unknownMatchEmbed)
-
     # No entity was found
-    elif match == None:
+    elif match == []:
         noMatchEmbed = discord.Embed(
-            colour=discord.Colour.yellow(),
+            colour=discord.Colour.orange(),
             title="ERROR",
-            description=f"No matches found for **{ filteredInput }** in the search endpoint"
+            description=f"No matches found for **{ filteredInput }** in the search/ directory"
         )
 
         noMatchEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
@@ -1459,7 +1448,7 @@ async def search(ctx, *args):
 
     # Otherwise, construct & send responses
     else:
-        responses = constructResponse(args, match["route"], match["matchedObj"])
+        responses = constructResponse(args, match["route"], match["entity"])
         for response in responses:
 
             if isinstance(response, discord.Embed):
@@ -1467,10 +1456,11 @@ async def search(ctx, *args):
                 # Set a thumbnail for relevant embeds and on successful Scryfall request, overwriting all other thumbnail setup
                 image = requestScryfall(args, False)
 
-                if (not isinstance(image, int)): response.set_thumbnail(url=image)
+                if (not isinstance(image, int)):
+                    response.set_thumbnail(url=image)
 
                 # Note partial match in footer of embed
-                if partial_match:
+                if match['partial'] is True:
                     response.set_footer(text=f"NOTE: Your search term ({ filteredInput }) was a PARTIAL match to this entity.\nIf this isn't the entity you were expecting, try refining your search term or use ?searchdir instead")
                 else:
                     response.set_footer(text="NOTE: If this isn't the entity you were expecting, try refining your search term or use `?searchdir` instead")
@@ -1485,16 +1475,14 @@ async def search(ctx, *args):
     print("DONE!")
 
 ###
-# FUNC NAME: ?searchdir [RESOURCE] [ENTITY]
-# FUNC DESC: Queries the Open5e RESOURCE API.
-# RESOURCE:  Resource name (i.e. spells, monsters, etc.).
-# ENTITY: The DND entity you wish to get infomation on.
+# FUNC NAME: ?searchdir [DIRECTORY] [ENTITY]
+# FUNC DESC: Queries the Open5e DIRECTORY API.
 # FUNC TYPE: Command
 ###
 @BOT.command(
     name='searchdir',
-    help='Queries the Open5e API to get entities infomation from specified resource.',
-    usage='?search [RESOURCE] [ENTITY]',
+    help='Queries the Open5e API to get entities infomation from specified directory.',
+    usage='?searchdir [DIRECTORY] [ENTITY]',
     aliases=["dir", "d", "D"]
 )
 async def searchdir(ctx, *args):
@@ -1504,20 +1492,10 @@ async def searchdir(ctx, *args):
 
     print(f"EXECUTING: ?searchdir { args }")
 
-    # Import & reset globals
-    global partial_match
-    partial_match = False
-
-    # Get API Root
-    rootRequest = requests.get("https://api.open5e.com?format=json")
-
-    # Throw if Root request wasn't successfull
-    if rootRequest.status_code != 200:
-        return await ctx.send(embed=codeError(rootRequest.status_code, "https://api.open5e.com?format=json"))
-
-    # Remove search endpoint from list (not used in this command)
-    directories = list(rootRequest.json().keys())
-    directories.remove("search")
+    # Get api root directories
+    directories = getOpen5eRoot(ctx)
+    if isinstance(directories, int):
+        return await ctx.send(embed=codeError(directories, "https://api.open5e.com?format=json"))
 
     # Verify we have arguments
     if len(args) <= 0:
@@ -1531,8 +1509,8 @@ async def searchdir(ctx, *args):
 
         return await ctx.send(embed=usageEmbed)
 
-    # Filter the dictionary input
-    filteredDictionary = f"{ args[0].lower() }/"
+    # Filter the directory input
+    filteredDirectory = f"{ args[0].lower() }/"
 
     # Filter input to remove whitespaces and set lowercase
     filteredInput = "".join(args[1:]).lower()
@@ -1541,35 +1519,35 @@ async def searchdir(ctx, *args):
     if len(args) >= 201:
         return await ctx.send(embed=argLengthError())
 
-    # Verify resource exists
+    # Verify directory exists
     if directories.count(args[0]) <= 0:
 
-        noResourceEmbed = discord.Embed(
+        noDirectoryEmbed = discord.Embed(
             colour=discord.Colour.orange(),
             title=f"Requested Directory (`{ str(args[0]) }`) is not a valid directory name",
             description=f"**Available Directories**\n{ ', '.join(directories) }"
         )
 
-        noResourceEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
+        noDirectoryEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
 
-        return await ctx.send(embed=noResourceEmbed)
+        return await ctx.send(embed=noDirectoryEmbed)
 
     # Send directory contents if no search term given
     if len(args) == 1:
 
         await ctx.send(embed=discord.Embed(
             color=discord.Colour.blue(),
-            title=f"GETTING ALL SEARCHABLE ENTITIES IN { filteredDictionary.upper() } ENDPOINT...",
+            title=f"GETTING ALL SEARCHABLE ENTITIES IN { filteredDirectory.upper() } DIRECTORY...",
             description="WARNING: This may take a while!"
         ))
 
         # Get objects from directory, store in txt file
-        directoryRequest = requests.get(f"https://api.open5e.com/{ filteredDictionary }?format=json&limit=10000")
+        directoryRequest = requests.get(f"https://api.open5e.com/{ filteredDirectory }?format=json&limit=10000")
 
         if directoryRequest.status_code != 200:
             return await ctx.send(embed=codeError(
                 directoryRequest.status_code,
-                f"https://api.open5e.com/{ filteredDictionary }?format=json&limit=10000"
+                f"https://api.open5e.com/{ filteredDirectory }?format=json&limit=10000"
                 )
             )
 
@@ -1583,13 +1561,13 @@ async def searchdir(ctx, *args):
 
             detailsEmbed = discord.Embed(
                 colour=discord.Colour.orange(),
-                title="All searchable entities in this endpoint",
+                title="All searchable entities in this directory",
                 description="\n".join(entityNames)
             )
 
             detailsEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
-            if "search" in filteredDictionary:
-                detailsEmbed.set_footer(text="NOTE: The `search` endpoint is not searchable with `?searchdir`. Use `?search` instead for this.")
+            if "search" in filteredDirectory:
+                detailsEmbed.set_footer(text="NOTE: The `search` directory is not supported with `?searchdir`. Use `?search` instead for this.")
 
             return await ctx.send(embed=detailsEmbed)
 
@@ -1603,29 +1581,25 @@ async def searchdir(ctx, *args):
         # Send embed notifying start of the spam stream
         detailsEmbed = discord.Embed(
             colour=discord.Colour.orange(),
-            title=f"See `{ entityDirFileName }` for all searchable entities in this endpoint",
+            title=f"See `{ entityDirFileName }` for all searchable entities in this directory",
             description="Due to discord character limits regarding embeds, the results have to be sent in a file. Yes I know this is far from ideal but it's the best I can do!"
         )
 
         detailsEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
-        if "search" in filteredDictionary:
-            detailsEmbed.set_footer(text="NOTE: The `search` endpoint is not searchable with `?searchdir`. Use `?search` instead for this.")
+        if "search" in filteredDirectory:
+            detailsEmbed.set_footer(text="NOTE: The `search` directory is not searchable with `?searchdir`. Use `?search` instead for this.")
 
         await ctx.send(embed=detailsEmbed)
 
         # Send entities file
         return await ctx.send(file=discord.File(entityDirFileName))
 
-    # search/ endpoint is best used with the dedicated ?search command
-    if "search" in filteredDictionary:
-
-        # Remove search endpoint from list
-        directories = list(rootRequest.json().keys())
-        directories.remove("search")
+    # search/ directory is best used with the dedicated ?search command
+    if "search" in filteredDirectory:
 
         searchEmbed = discord.Embed(
             colour=discord.Colour.orange(),
-            title=f"Requested Directory (`{ str(args[0]) }`) is not a valid directory name", 
+            title=f"Requested Directory (`{ str(args[0]) }`) is not a valid directory name",
             description=f"**Available Directories**\n{ ', '.join(directories) }"
         )
 
@@ -1637,43 +1611,23 @@ async def searchdir(ctx, *args):
     # Search API
     await ctx.send(embed=discord.Embed(
         color=discord.Colour.blue(),
-        title=f"SEARCHING { filteredDictionary.upper() } ENDPOINT FOR { filteredInput }...",
+        title=f"SEARCHING { filteredDirectory.upper() } DIRECTORY FOR { filteredInput }...",
         description="WARNING: This may take a while!"
     ))
 
-    # Determine filter type (search can only be used for some endpoints)
-    filterType = "text"
-    if args[0] in SEARCH_PARAM_ENDPOINTS: filterType = "search"
-
     # Use first word to narrow search results down for quicker response on some directories
-    match = requestOpen5e(
-        f"https://api.open5e.com/{ filteredDictionary }?format=json&limit=10000&{ filterType }={ str(args[1]) }",
-        filteredInput,
-        False
-    )
+    match = requestOpen5e(f"https://api.open5e.com/{ filteredDirectory }?format=json&limit=10000&{ getRequestType(args[0]) }={ str(args[1]) }", filteredInput, False, False)
 
     # An API Request failed
     if isinstance(match, dict) and "code" in match.keys():
-        return await ctx.send(embed=codeError(match.code, match.query))
-
-    # Searching algorithm hit an invalid object
-    elif match == "UNKNOWN":
-        unknownMatchEmbed = discord.Embed(
-            colour=discord.Colour.red(),
-            title="ERROR",
-            description="I found an entity in the API database that doesn't contain a `name` or `document` attribute. Please report this to https://github.com/M-Davies/oghma/issues"
-        )
-
-        unknownMatchEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-
-        return await ctx.send(embed=unknownMatchEmbed)
+        return await ctx.send(embed=codeError(match['code'], match['query']))
 
     # No entity was found
-    elif match == None:
+    elif match == []:
         noMatchEmbed = discord.Embed(
             colour=discord.Colour.orange(),
             title="ERROR",
-            description=f"No matches found for **{ filteredInput.upper() }** in the { filteredDictionary } endpoint"
+            description=f"No matches found for **{ filteredInput.upper() }** in the { filteredDirectory } directory"
         )
 
         noMatchEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
@@ -1682,7 +1636,7 @@ async def searchdir(ctx, *args):
 
     # Otherwise, construct & send responses
     else:
-        responses = constructResponse(args, filteredDictionary, match)
+        responses = constructResponse(args, filteredDirectory, match['entity'])
         for response in responses:
 
             if isinstance(response, discord.Embed):
@@ -1690,10 +1644,11 @@ async def searchdir(ctx, *args):
                 # Set a thumbnail for relevant embeds and on successful Scryfall request, overwrites other thumbnail setup
                 image = requestScryfall(args, True)
 
-                if (not isinstance(image, int)): response.set_thumbnail(url=image)
+                if (not isinstance(image, int)):
+                    response.set_thumbnail(url=image)
 
                 # Note partial match in footer of embed
-                if partial_match:
+                if match['partial'] is True:
                     response.set_footer(text=f"NOTE: Your search term ({ filteredInput }) was a PARTIAL match to this entity.\nIf this isn't the entity you were expecting, try refining your search term")
 
                 print(f"SENDING EMBED: { response.title }...")
@@ -1702,6 +1657,164 @@ async def searchdir(ctx, *args):
             elif ".txt" in response:
                 print(f"SENDING FILE: { response }...")
                 await ctx.send(file=discord.File(response))
+
+    print("DONE!")
+
+###
+# FUNC NAME: ?lst [DIRECTORY] [ENTITY]
+# FUNC DESC: Queries the Open5e API to get all the fully and partially matching entities infomation in a list embed format.
+# FUNC TYPE: Command
+###
+@BOT.command(
+    name='lst',
+    help='Queries the Open5e API to get all the fully and partially matching entities based on the search term.',
+    usage='?list [?DIRECTORY] [ENTITY]',
+    aliases=["list", "l", "L"]
+)
+async def lst(ctx, *args):
+    # Sleep to wait for other stuff to complete first
+    time.sleep(COMMAND_DELAY_SLEEP_VALUE)
+
+    print(f"EXECUTING: ?lst { args }")
+
+    # Verify arg length isn't over limits
+    if len(args) >= 201:
+        return await ctx.send(embed=argLengthError())
+
+    # Verify we have arguments
+    if len(args) <= 0:
+        usageEmbed = discord.Embed(
+            colour=discord.Colour.orange(),
+            title="No entity was requested.\nUSAGE: `?lst [SEARCH TERM]`"
+        )
+        usageEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
+        return await ctx.send(embed=usageEmbed)
+
+    # Check if we are searching in a directory or on all directories
+    matches = None
+    filteredInput = ""
+    filteredDirectory = ""
+
+    # Get api root directories
+    directories = getOpen5eRoot(ctx)
+    if isinstance(directories, int):
+        return await ctx.send(embed=codeError(directories, "https://api.open5e.com?format=json"))
+
+    # Filter the directory input
+    filteredDirectory = f"{ args[0].lower() }/"
+
+    # Verify directory exists, filter input to trim and lowercase
+    wideSearching = False
+    filteredInput = "".join(args[1:]).lower()
+    if directories.count(args[0]) <= 0:
+        wideSearching = True
+        filteredInput = "".join(args[0:]).lower()
+        filteredDirectory = "search/"
+
+    # If an invalid directory is given, default to wide search using search/ directory
+    if wideSearching is True:
+        await ctx.send(embed=discord.Embed(
+            color=discord.Colour.blue(),
+            title="FINDING ALL ENTITIES IN SEARCH/ DIRECTORY...",
+            description=f"WARNING: The first argument you have passed ({args[0]}) is not a valid directory name. This will be treated as part of your entity query instead and will use the search/ directory. If this behaviour is unexpected, pass a valid directory name as your first parameter."
+        ).set_footer(text=f"Valid directory names = {', '.join(directories)}"))
+
+        matches = requestOpen5e(f"https://api.open5e.com/search?format=json&limit=10000&text={str(args[0])}", filteredInput, False, True)
+    else:
+        await ctx.send(embed=discord.Embed(
+            color=discord.Colour.blue(),
+            title=f"FINDING ALL ENTITIES IN { filteredDirectory.upper() } DIRECTORY..."
+        ))
+
+        # Use first word to narrow search results down for quicker response on some directories
+        matches = requestOpen5e(f"https://api.open5e.com/{ filteredDirectory }?format=json&limit=10000&{ getRequestType(args[0]) }={ str(args[1]) }", filteredInput, wideSearching, True)
+
+    # An API Request failed
+    if isinstance(matches, dict) and "code" in matches.keys():
+        await ctx.send(embed=codeError(matches['code'], matches['query']))
+    # Nothing was found
+    elif matches is []:
+        noMatchEmbed = discord.Embed(
+            colour=discord.Colour.orange(),
+            title="ERROR",
+            description=f"No matches found for **{ filteredInput }** in the database or requested directory"
+        )
+        noMatchEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
+        await ctx.send(embed=noMatchEmbed)
+    else:
+        # Embeds have a max of 25 fields, so stick it in a txt doc if we can't fit all of them in
+        if len(matches) < 25:
+            # Accumulate all matches into one embed
+            matchesEmbed = discord.Embed(
+                colour=discord.Colour.green(),
+                title=f"SEARCH RESULTS FOR { filteredInput }",
+                description="Results ***in italics*** are partial matches and may be less accurate. All others are full matches and line up with your search term as it is."
+            )
+            matchesEmbed.set_author(name=f"Requested by { ctx.author.display_name }", icon_url=f"{ ctx.author.avatar_url }")
+
+            for match in matches:
+                # Documents do not have a name identifier key
+                identifier = "name"
+                if "title" in match['entity'].keys():
+                    identifier = "title"
+
+                # Display result in field title, directory in value
+                entityDirectory = filteredDirectory
+                if wideSearching:
+                    entityDirectory = match['entity']['route']
+
+                if match['partial'] is True:
+                    matchesEmbed.add_field(
+                        name=f"*{match['entity'][identifier]}*",
+                        value=f"*In {entityDirectory[:-1]}*",
+                        inline=True
+                    )
+                else:
+                    matchesEmbed.add_field(
+                        name=match['entity'][identifier],
+                        value=f"In {entityDirectory[:-1]}",
+                        inline=True
+                    )
+
+            print(f"SENDING EMBED: { matchesEmbed }...")
+            await ctx.send(embed=matchesEmbed)
+        else:
+            matchesEmbed = discord.Embed(
+                colour=discord.Colour.green(),
+                title=f"SEARCH RESULTS FOR {filteredInput}",
+                description="Results sandwiched inside asterisks (`**`) are partial matches and may be less accurate. All others are full matches and line up with your search term as it is."
+            )
+            matchesEmbed.set_author(name=f"Requested by { ctx.author.display_name }", icon_url=f"{ ctx.author.avatar_url }")
+
+            formattedMatches = ""
+            for match in matches:
+                # Documents do not have a name identifier key
+                identifier = "name"
+                if "title" in match['entity'].keys():
+                    identifier = "title"
+
+                # Display result in field title, directory in value
+                if match['partial'] is True:
+                    formattedMatches += f"*{match['entity'][identifier]} : In {match['entity']['route'] if filteredDirectory == '' else filteredDirectory}*\n"
+                else:
+                    formattedMatches += f"{match['entity'][identifier]} : In {match['entity']['route'] if filteredDirectory == '' else filteredDirectory}\n"
+
+            # Create file and store matches in there
+            matchesFileName = generateFileName("matches")
+            matchesFile = open(matchesFileName, "a+")
+            matchesFile.write(formattedMatches)
+            matchesFile.close()
+
+            matchesEmbed.add_field(
+                name="TOO MANY MATCHES FOR DISCORD",
+                value=f"See `{ matchesFileName }` for the matched entities",
+                inline=False
+            )
+
+            print(f"SENDING EMBED: { matchesEmbed }...")
+            await ctx.send(embed=matchesEmbed)
+            print(f"SENDING FILE: { matchesFileName }...")
+            await ctx.send(file=discord.File(matchesFileName))
 
     print("DONE!")
 
