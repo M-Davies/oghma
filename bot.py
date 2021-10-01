@@ -56,16 +56,16 @@ def searchResponse(responseResults, filteredInput):
         # Documents don't have a name attribute
         if "title" in entity:
 
-            # Look for a partial match if no exact match can be found
+            # Look for a partial match if no exact match can be found. Exact matches are pushed to front
             if filteredInput == parse(entity["title"]):
-                matches.append({"entity": entity, "partial": False})
+                matches.insert(0, {"entity": entity, "partial": False})
             elif filteredInput in parse(entity["title"]):
                 matches.append({"entity": entity, "partial": True})
 
         elif "name" in entity:
 
             if filteredInput == parse(entity["name"]):
-                matches.append({"entity": entity, "partial": False})
+                matches.insert(0, {"entity": entity, "partial": False})
             elif filteredInput in parse(entity["name"]):
                 matches.append({"entity": entity, "partial": True})
 
@@ -84,18 +84,23 @@ def requestScryfall(searchTerm, searchdir):
     if scryfallRequest.status_code == 404:
 
         searchWord = searchTerm[0]
-        if searchdir: searchWord = searchTerm[1]
+        if searchdir:
+            searchWord = searchTerm[1]
 
         scryfallWordRequest = requests.get(f"https://api.scryfall.com/cards/search?q={ searchWord }&include_extras=true&include_multilingual=true&include_variations=true")
 
-        if scryfallWordRequest.status_code != 200: return scryfallWordRequest.status_code
-        else: return scryfallWordRequest.json()["data"][0]["image_uris"]["art_crop"]
+        if scryfallWordRequest.status_code != 200:
+            return scryfallWordRequest.status_code
+        else:
+            return scryfallWordRequest.json()["data"][0]["image_uris"]["art_crop"]
 
     # Return code if API request failed
-    elif scryfallRequest.status_code != 200: return scryfallRequest.status_code
+    elif scryfallRequest.status_code != 200:
+        return scryfallRequest.status_code
 
     # Otherwise, return the cropped image url
-    else: return scryfallRequest.json()["data"][0]["image_uris"]["art_crop"]
+    else:
+        return scryfallRequest.json()["data"][0]["image_uris"]["art_crop"]
 
 ###
 # FUNC NAME: getFilterType
@@ -111,7 +116,7 @@ def getRequestType(route):
 
 ###
 # FUNC NAME: requestOpen5e
-# FUNC DESC: Queries the Open5e API.
+# FUNC DESC: Queries the Open5e API and returns an array of results
 # FUNC TYPE: Function
 ###
 def requestOpen5e(query, filteredInput, wideSearch, listResults):
@@ -128,7 +133,7 @@ def requestOpen5e(query, filteredInput, wideSearch, listResults):
 
     if results == []:
         # No full or partial matches were found
-        return None
+        return []
     elif listResults is True:
         # Return all the full and partial matches
         return results
@@ -157,10 +162,13 @@ def requestOpen5e(query, filteredInput, wideSearch, listResults):
                     "query": f"https://api.open5e.com/{ route }?format=json&limit=10000&search={ firstMatchedEntity['entity']['name'].split()[0] }"
                 }
 
-            # Search response again for the actual object
+            # Search response again for the actual object, return empty array if none was found
             actualMatch = searchResponse(directoryRequest.json()["results"], filteredInput)
-            actualMatch["route"] = route
-            return actualMatch
+            if actualMatch != []:
+                actualMatch[0]["route"] = route
+                return actualMatch[0]
+            else:
+                return []
         else:
             # We already got a match, return it
             return firstMatchedEntity
@@ -999,7 +1007,7 @@ async def on_command_error(ctx, error):
         invokeEmbed = discord.Embed(
             colour=discord.Colour.red(),
             title="COMMAND FAILED TO EXECUTE",
-            description=f"Do I have the right permissions (Send messages, Embeds and Files as well as Read Message History)?\n\n__STACKTRACE__\n{error}"
+            description=f"Do I have the right permissions (Send messages, Embeds and Files as well as Read Message History)?\n\n__ERROR__\n{error}"
         )
         invokeEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
         print("SENDING CommandInvokeError / BotMissingPermissions EMBED...")
@@ -1090,7 +1098,7 @@ def getOpen5eRoot(ctx):
     rootRequest = requests.get("https://api.open5e.com?format=json")
 
     if rootRequest.status_code == 200:
-        # Remove search directory from list (not used in this command)
+        # Remove search directory from list (not used)
         allDirectories = list(rootRequest.json().keys())
         allDirectories.remove("search")
         return allDirectories
@@ -1149,7 +1157,7 @@ async def roll(ctx, *args):
 
         return invalidOperatorEmbed
 
-    # START: Verify arg length isn't over limits
+    # Verify arg length isn't over limits
     if len(args) >= 201:
         return await ctx.send(embed=argLengthError())
 
@@ -1427,7 +1435,7 @@ async def search(ctx, *args):
         return await ctx.send(embed=codeError(match["code"], match["query"]))
 
     # No entity was found
-    elif match is None:
+    elif match == []:
         noMatchEmbed = discord.Embed(
             colour=discord.Colour.orange(),
             title="ERROR",
@@ -1448,7 +1456,8 @@ async def search(ctx, *args):
                 # Set a thumbnail for relevant embeds and on successful Scryfall request, overwriting all other thumbnail setup
                 image = requestScryfall(args, False)
 
-                if (not isinstance(image, int)): response.set_thumbnail(url=image)
+                if (not isinstance(image, int)):
+                    response.set_thumbnail(url=image)
 
                 # Note partial match in footer of embed
                 if match['partial'] is True:
@@ -1614,7 +1623,7 @@ async def searchdir(ctx, *args):
         return await ctx.send(embed=codeError(match['code'], match['query']))
 
     # No entity was found
-    elif match == None:
+    elif match == []:
         noMatchEmbed = discord.Embed(
             colour=discord.Colour.orange(),
             title="ERROR",
@@ -1706,7 +1715,7 @@ async def lst(ctx, *args):
     if wideSearching is True:
         await ctx.send(embed=discord.Embed(
             color=discord.Colour.blue(),
-            title="GETTING ALL ENTITIES IN SEARCH/ DIRECTORY...",
+            title="FINDING ALL ENTITIES IN SEARCH/ DIRECTORY...",
             description=f"WARNING: The first argument you have passed ({args[0]}) is not a valid directory name. This will be treated as part of your entity query instead and will use the search/ directory. If this behaviour is unexpected, pass a valid directory name as your first parameter."
         ).set_footer(text=f"Valid directory names = {', '.join(directories)}"))
 
@@ -1714,8 +1723,7 @@ async def lst(ctx, *args):
     else:
         await ctx.send(embed=discord.Embed(
             color=discord.Colour.blue(),
-            title=f"GETTING ALL ENTITIES IN { filteredDirectory.upper() } DIRECTORY...",
-            description="WARNING: This may take a while!"
+            title=f"FINDING ALL ENTITIES IN { filteredDirectory.upper() } DIRECTORY..."
         ))
 
         # Use first word to narrow search results down for quicker response on some directories
@@ -1725,7 +1733,7 @@ async def lst(ctx, *args):
     if isinstance(matches, dict) and "code" in matches.keys():
         await ctx.send(embed=codeError(matches['code'], matches['query']))
     # Nothing was found
-    elif matches is None:
+    elif matches is []:
         noMatchEmbed = discord.Embed(
             colour=discord.Colour.orange(),
             title="ERROR",
@@ -1751,16 +1759,20 @@ async def lst(ctx, *args):
                     identifier = "title"
 
                 # Display result in field title, directory in value
+                entityDirectory = filteredDirectory
+                if wideSearching:
+                    entityDirectory = match['entity']['route']
+
                 if match['partial'] is True:
                     matchesEmbed.add_field(
                         name=f"*{match['entity'][identifier]}*",
-                        value=f"*In {match['entity']['route'] if len(filteredDirectory) <= 0 else filteredDirectory}*",
+                        value=f"*In {entityDirectory[:-1]}*",
                         inline=True
                     )
                 else:
                     matchesEmbed.add_field(
                         name=match['entity'][identifier],
-                        value=f"In {match['entity']['route'] if len(filteredDirectory) <= 0 else filteredDirectory}",
+                        value=f"In {entityDirectory[:-1]}",
                         inline=True
                     )
 
