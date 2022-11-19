@@ -6,7 +6,6 @@
 
 import os
 import requests
-import json
 import random
 import time
 import discord
@@ -190,7 +189,8 @@ def constructResponse(args, route, matchedObj):
     if "document" in route:
         # Get document link
         docLink = matchedObj['url']
-        if "http" not in docLink: docLink = f"http://{ matchedObj['url'] }"
+        if "http" not in docLink:
+            docLink = f"http://{ matchedObj['url'] }"
 
         if len(matchedObj["desc"]) >= 2048:
             documentEmbed = discord.Embed(
@@ -248,7 +248,8 @@ def constructResponse(args, route, matchedObj):
         spellEmbed.add_field(name="Ritual?", value=matchedObj["ritual"], inline=True)
 
         spellEmbed.add_field(name="Spell Components", value=matchedObj["components"], inline=True)
-        if "M" in matchedObj["components"]: spellEmbed.add_field(name="Material", value=matchedObj["material"], inline=True)
+        if "M" in matchedObj["components"]:
+            spellEmbed.add_field(name="Material", value=matchedObj["material"], inline=True)
         spellEmbed.add_field(name="Page Number", value=matchedObj["page"], inline=True)
 
         spellEmbed.set_thumbnail(url="https://i.imgur.com/W15EmNT.jpg")
@@ -273,7 +274,7 @@ def constructResponse(args, route, matchedObj):
         )
 
         # Str
-        if matchedObj["strength_save"] != None:
+        if matchedObj["strength_save"] is not None:
             monsterEmbedBasics.add_field(
                 name="STRENGTH",
                 value=f"{ matchedObj['strength'] } (SAVE: **{ matchedObj['strength_save'] }**)",
@@ -287,7 +288,7 @@ def constructResponse(args, route, matchedObj):
             )
 
         # Dex
-        if matchedObj["dexterity_save"] != None:
+        if matchedObj["dexterity_save"] is not None:
             monsterEmbedBasics.add_field(
                 name="DEXTERITY",
                 value=f"{matchedObj['dexterity']} (SAVE: **{ matchedObj['dexterity_save'] }**)",
@@ -301,7 +302,7 @@ def constructResponse(args, route, matchedObj):
             )
 
         # Con
-        if matchedObj["constitution_save"] != None:
+        if matchedObj["constitution_save"] is not None:
             monsterEmbedBasics.add_field(
                 name="CONSTITUTION",
                 value=f"{ matchedObj['constitution'] } (SAVE: **{ matchedObj['constitution_save'] }**)",
@@ -315,7 +316,7 @@ def constructResponse(args, route, matchedObj):
             )
 
         # Int
-        if matchedObj["intelligence_save"] != None:
+        if matchedObj["intelligence_save"] is not None:
             monsterEmbedBasics.add_field(
                 name="INTELLIGENCE",
                 value=f"{ matchedObj['intelligence'] } (SAVE: **{ matchedObj['intelligence_save'] }**)",
@@ -329,7 +330,7 @@ def constructResponse(args, route, matchedObj):
             )
 
         # Wis
-        if matchedObj["wisdom_save"] != None:
+        if matchedObj["wisdom_save"] is not None:
             monsterEmbedBasics.add_field(
                 name="WISDOM",
                 value=f"{ matchedObj['wisdom'] } (SAVE: **{ matchedObj['wisdom_save'] }**)",
@@ -343,7 +344,7 @@ def constructResponse(args, route, matchedObj):
             )
 
         # Cha
-        if matchedObj["charisma_save"] != None:
+        if matchedObj["charisma_save"] is not None:
             monsterEmbedBasics.add_field(
                 name="CHARISMA",
                 value=f"{ matchedObj['charisma'] } (SAVE: **{ matchedObj['charisma_save'] }**)",
@@ -396,7 +397,8 @@ def constructResponse(args, route, matchedObj):
         monsterEmbedSkills.add_field(name="SENSES", value=matchedObj["senses"], inline=True)
 
         # Languages
-        if matchedObj["languages"] != "": monsterEmbedSkills.add_field(name="LANGUAGES", value=matchedObj["languages"], inline=True)
+        if matchedObj["languages"] != "":
+            monsterEmbedSkills.add_field(name="LANGUAGES", value=matchedObj["languages"], inline=True)
 
         # Damage conditionals
         monsterEmbedSkills.add_field(
@@ -404,9 +406,7 @@ def constructResponse(args, route, matchedObj):
             value="**VULNERABLE TO:** {}\n**RESISTANT TO:** {}\n**IMMUNE TO:** {}".format(
                 matchedObj["damage_vulnerabilities"] if matchedObj["damage_vulnerabilities"] != "" else "Nothing",
                 matchedObj["damage_resistances"] if matchedObj["damage_resistances"] != "" else "Nothing",
-                matchedObj["damage_immunities"] if matchedObj["damage_immunities"] != "" else "Nothing"
-                    + ", "
-                        + matchedObj["condition_immunities"] if matchedObj["condition_immunities"] != None else "Nothing",
+                matchedObj["damage_immunities"] if matchedObj["damage_immunities"] != "" else "Nothing" + ", " + matchedObj["condition_immunities"] if matchedObj["condition_immunities"] is not None else "Nothing",
             ),
             inline=False
         )
@@ -460,11 +460,9 @@ def constructResponse(args, route, matchedObj):
         # Spells
         if matchedObj["spell_list"] != []:
 
-            # Function to split the spell link down (e.g. https://api.open5e.com/spells/light/), [:-1] removes trailing whitespace
-            def splitSpell(spellName): return spellName.replace("-", " ").split("/")[:-1]
-
             for spell in matchedObj["spell_list"]:
-                spellSplit = splitSpell(spell)
+                # Split the spell link down (e.g. https://api.open5e.com/spells/light/), [:-1] removes trailing whitespace
+                spellSplit = spell.replace("-", " ").split("/")[:-1]
 
                 monsterEmbedActions.add_field(
                     name=spellSplit[-1],
@@ -494,8 +492,10 @@ def constructResponse(args, route, matchedObj):
 
         # Author & Image for all embeds
         for embed in responses:
-            if matchedObj["img_main"] != None: embed.set_thumbnail(url=matchedObj["img_main"])
-            else: embed.set_thumbnail(url="https://i.imgur.com/6HsoQ7H.jpg")
+            if matchedObj["img_main"] is not None:
+                embed.set_thumbnail(url=matchedObj["img_main"])
+            else:
+                embed.set_thumbnail(url="https://i.imgur.com/6HsoQ7H.jpg")
 
     # Background
     elif "background" in route:
@@ -510,7 +510,7 @@ def constructResponse(args, route, matchedObj):
         )
 
         # Profs
-        if matchedObj["tool_proficiencies"] != None:
+        if matchedObj["tool_proficiencies"] is not None:
             backgroundEmbed.add_field(
                 name="PROFICIENCIES",
                 value=f"**SKILLS**: { matchedObj['skill_proficiencies'] }\n**TOOLS**: { matchedObj['tool_proficiencies'] }",
@@ -524,7 +524,7 @@ def constructResponse(args, route, matchedObj):
             )
 
         # Languages
-        if matchedObj["languages"] != None:
+        if matchedObj["languages"] is not None:
             backgroundEmbed.add_field(name="LANGUAGES", value=matchedObj["languages"], inline=True)
 
         # Equipment
@@ -546,7 +546,7 @@ def constructResponse(args, route, matchedObj):
         responses.append(backgroundFeatureEmbed)
 
         # 3rd Embed & File (suggested characteristics)
-        if matchedObj["suggested_characteristics"] != None:
+        if matchedObj["suggested_characteristics"] is not None:
 
             if len(matchedObj["suggested_characteristics"]) <= 2047:
 
@@ -1064,7 +1064,7 @@ async def on_ready():
 )
 async def help(ctx, *args):
     # Add 1 to latency as we sleep for 1 sec before every command
-    helpEmbed=discord.Embed(
+    helpEmbed = discord.Embed(
         title="Oghma",
         url="https://top.gg/bot/658336624647733258",
         description=f"__Current Latency__\n\n{ 1 + round(BOT.latency, 1) } seconds\n\n__Available commands__\n\n**?help** - Displays this message (duh)\n\n**?roll [ROLLS]d[SIDES]** - Dice roller with calculator logic\n\n**?search [ENTITY]** - Searches the whole Open5e D&D database for your chosen entity.\n\n**?searchdir [DIRECTORY] [ENTITY]** - Searches a specific category of the Open5e D&D database for your chosen entity a lot faster than *?search*.\n\n**?lst [DIRECTORY] [ENTITY]** - Queries the API to get all the fully and partially matching entities based on the search term.",
@@ -1212,9 +1212,9 @@ async def roll(ctx, *args):
 
         # Import cumulativeTotal from previous argument for the current argument
         diceRollResults[argument] = {
-            "results" : [],
-            "sectionTotal" : 0.0,
-            "cumulativeTotal" : runningTotal
+            "results": [],
+            "sectionTotal": 0.0,
+            "cumulativeTotal": runningTotal
         }
 
         # If arg is a operator, isn't the first character and is a single char
@@ -1240,7 +1240,8 @@ async def roll(ctx, *args):
             numCheck = ""
             try:
                 numCheck = float(argument)
-            except ValueError: pass
+            except ValueError:
+                pass
 
             if isinstance(numCheck, float):
                 # Ensure number isn't too big
@@ -1259,7 +1260,7 @@ async def roll(ctx, *args):
                 numberOfSides = 0
                 regexReturn = re.search("(?P<rolls>[0-9]*)d(?P<sides>[0-9]+)", sanitisedCurrentDice)
 
-                if regexReturn != None:
+                if regexReturn is not None:
 
                     # Default to 1 roll if none are supplied, otherwise use the rolls group
                     if regexReturn.group("rolls") != "":
@@ -1395,8 +1396,7 @@ async def search(ctx, *args):
             return await ctx.send(embed=codeError(
                 directoryRequest.status_code,
                 "https://api.open5e.com/search/?format=json&limit=10000"
-                )
-            )
+            ))
 
         # Generate a unique filename and write to it
         entityFileName = generateFileName("entsearch")
@@ -1552,13 +1552,14 @@ async def searchdir(ctx, *args):
             return await ctx.send(embed=codeError(
                 directoryRequest.status_code,
                 f"https://api.open5e.com/{ filteredDirectory }?format=json&limit=10000"
-                )
-            )
+            ))
 
         entityNames = []
         for entity in directoryRequest.json()["results"]:
-            if "title" in entity.keys(): entityNames.append(entity['title'])
-            else: entityNames.append(entity['name'])
+            if "title" in entity.keys():
+                entityNames.append(entity['title'])
+            else:
+                entityNames.append(entity['name'])
 
         # Keep description word count low to account for names with lots of characters
         if len(entityNames) <= 200:
