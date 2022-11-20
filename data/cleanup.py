@@ -5,7 +5,6 @@
 ###
 
 import os
-import re
 import platform
 
 FILE_DELIMITER = "\\" if platform.system() == "Windows" else "/"
