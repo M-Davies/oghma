@@ -25,10 +25,13 @@ FILE_DELIMITER = "/"
 if platform.system() == "Windows":
     FILE_DELIMITER = "\\"
 
+class OghmaClient(discord.Client):
+    def __init__(self, *, intents: discord.Intents):
+        super().__init__(intents=intents)
+        self.tree = app_commands.CommandTree(self)
+
 INTENTS = discord.Intents.default()
-INTENTS.message_content = True
-CLIENT = discord.Client(intents=INTENTS)
-TREE = app_commands.CommandTree(CLIENT)
+CLIENT = OghmaClient(intents=INTENTS)
 
 SEARCH_PARAM_DIRECTORIES = ["spells", "monsters", "magicitems", "weapons"]
 NUMERIC_OPERATORS = ["+", "-", "*", "/"]
@@ -59,7 +62,7 @@ async def on_ready():
 # FUNC DESC: Sends useful output on an error occurance to the user
 # FUNC TYPE: Event
 ###
-@TREE.error
+@CLIENT.event
 async def on_error(interaction: discord.Interaction, error):
 
     # Throw if discord failed to execute a command
@@ -1068,7 +1071,7 @@ def getOpen5eRoot():
 # FUNC DESC: Displays a help message that shows the bot is live
 # FUNC TYPE: Command
 ###
-@app_commands.command(description="Displays a help message that shows usage information")
+@CLIENT.tree.command(description="Displays a help message that shows usage information")
 async def help(interaction: discord.Interaction):
     # Add 1 to latency as we sleep for 1 sec before every command
     helpEmbed = discord.Embed(
@@ -1097,8 +1100,8 @@ async def help(interaction: discord.Interaction):
 # FUNC DESC: Runs a dice roller
 # FUNC TYPE: Command
 ###
-@app_commands.command(description="Runs a quick & easy dice roller")
-@app_commands.describe(calculation = "The calculation to conduct" )
+@CLIENT.tree.command(description="Runs a quick & easy dice roller")
+@app_commands.describe(calculation = "The calculation to conduct")
 async def roll(interaction: discord.Interaction, calculation: str):
 
     # Sleep to wait for other stuff to complete first
@@ -1332,7 +1335,7 @@ async def roll(interaction: discord.Interaction, calculation: str):
 # FUNC DESC: Queries the Open5e search API, basically searches the whole thing for the ENTITY.
 # FUNC TYPE: Command
 ###
-@app_commands.command(description="Queries the Open5e API to get the requested entity")
+@CLIENT.tree.command(description="Queries the Open5e API to get the requested entity")
 @app_commands.rename(entityInput = "entity")
 @app_commands.describe(entityInput = "The entity you would like to search for")
 async def search(interaction: discord.Interaction, entityInput: Optional[str] = ""):
@@ -1450,7 +1453,7 @@ async def search(interaction: discord.Interaction, entityInput: Optional[str] = 
 # FUNC DESC: Queries the Open5e DIRECTORY API.
 # FUNC TYPE: Command
 ###
-@app_commands.command(description="Queries the Open5e API to get an entity's information from a specified directory.")
+@CLIENT.tree.command(description="Queries the Open5e API to get an entity's information from a specified directory.")
 @app_commands.rename(directoryInput = "directory", entityInput = "entity")
 @app_commands.describe(directoryInput = "The category to search for the entity in", entityInput = "The entity you would like to search for")
 async def searchdir(interaction: discord.Interaction, directoryInput: str, entityInput: Optional[str] = ""):
@@ -1612,7 +1615,7 @@ async def searchdir(interaction: discord.Interaction, directoryInput: str, entit
 # FUNC DESC: Queries the Open5e API to get all the fully and partially matching entities information in a list embed format.
 # FUNC TYPE: Command
 ###
-@app_commands.command(description="Queries the Open5e API to get all the fully and partially matching entities based on the search term.")
+@CLIENT.tree.command(description="Queries the Open5e API to get all the fully and partially matching entities based on the search term")
 @app_commands.rename(entityInput = "entity", directoryInput = "directory")
 @app_commands.describe(entityInput = "The entity you would like to search for", directoryInput = "The category to search for the entity in")
 async def lst(interaction: discord.Interaction, entityInput: str, directoryInput: Optional[str] = ""):

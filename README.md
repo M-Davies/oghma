@@ -75,3 +75,7 @@ We have a top.gg page! Assuming the link in the image above doesn't work, [click
 
 All contributions are welcome! Please join our [discord](https://discord.gg/8YZ2NZ5) and post a greeting in `#contributing` to get started. Also check out our [Testing.md](./TESTING.md) guide to setting up your own test bot to push new features and fixes (requires joining the discord)!
 It's just me working on the bot at the moment so any and all help would be appreciated :)
+
+## Privacy
+
+No user data is stored on who executed what command, just logs of what command was initiated anonymously are stored for debugging purposes. 
