@@ -23,6 +23,7 @@ load_dotenv()
 FILE_DELIMITER = "/"
 if platform.system() == "Windows":
     FILE_DELIMITER = "\\"
+CURRENT_DIR = f"{os.path.dirname(os.path.realpath(__file__))}/"
 
 class OghmaClient(discord.Client):
     def __init__(self, *, intents: discord.Intents):
@@ -40,7 +41,7 @@ ROLL_MAX_PARAM_VALUE = 10001
 # Set up logging
 LOGGER = logging.getLogger()
 LOGGER.setLevel(logging.INFO)
-LOG_HANDLER = logging.FileHandler(filename=f"oghma-{datetime.now().strftime('%d-%m-%Y')}.log", encoding="utf-8", mode="a")
+LOG_HANDLER = logging.FileHandler(filename=f"{CURRENT_DIR}{FILE_DELIMITER}logs{FILE_DELIMITER}oghma-{datetime.now().strftime('%d-%m-%Y')}.log", encoding="utf-8", mode="a")
 LOG_HANDLER.setFormatter(logging.Formatter("%(asctime)s: %(levelname)s: %(name)s: %(message)s"))
 LOGGER.addHandler(LOG_HANDLER)
 
@@ -645,11 +646,10 @@ def constructResponse(entityInput: str, route: str, matchedObj: dict):
                 responses["embeds"].append(backgroundChars)
 
                 # Create characteristics file
-                characteristicsFile = open(f"data{FILE_DELIMITER}{bckFileName}", "a+")
-                characteristicsFile.write(matchedObj["suggested_characteristics"])
-                characteristicsFile.close()
+                with open(f"{CURRENT_DIR}data{FILE_DELIMITER}{bckFileName}", "w+") as characteristicsFile:
+                    characteristicsFile.write(matchedObj["suggested_characteristics"])
 
-                responses["files"].append(discord.File(f"data{FILE_DELIMITER + bckFileName}"))
+                responses["files"].append(discord.File(f"{CURRENT_DIR}data{FILE_DELIMITER + bckFileName}"))
 
         for response in responses["embeds"]:
             response.set_thumbnail(url="https://i.imgur.com/GhGODan.jpg")
@@ -690,10 +690,9 @@ def constructResponse(entityInput: str, route: str, matchedObj: dict):
             responses["embeds"].append(sectionEmbedDesc)
 
             # Full description as a file
-            secDescFile = open(f"data{FILE_DELIMITER}{sectionFilename}", "a+")
-            secDescFile.write(matchedObj["desc"])
-            secDescFile.close()
-            responses["files"].append(f"data{FILE_DELIMITER + sectionFilename}")
+            with open(f"{CURRENT_DIR}data{FILE_DELIMITER}{sectionFilename}", "w+") as secDescFile:
+                secDescFile.write(matchedObj["desc"])
+            responses["files"].append(discord.File(f"{CURRENT_DIR}data{FILE_DELIMITER + sectionFilename}"))
 
         else:
             sectionEmbedDesc = discord.Embed(
@@ -838,16 +837,14 @@ def constructResponse(entityInput: str, route: str, matchedObj: dict):
         responses["embeds"].append(classDescEmbed)
 
         # Full description as a file
-        descFile = open(f"data{FILE_DELIMITER}{clsDesFileName}", "a+")
-        descFile.write(matchedObj["desc"])
-        descFile.close()
-        responses["files"].append(f"data{FILE_DELIMITER + clsDesFileName}")
+        with open(f"{CURRENT_DIR}data{FILE_DELIMITER}{clsDesFileName}", "w+") as descFile:
+            descFile.write(matchedObj["desc"])
+        responses["files"].append(discord.File(f"{CURRENT_DIR}data{FILE_DELIMITER + clsDesFileName}"))
 
         # Class table as a file
-        tableFile = open(f"data{FILE_DELIMITER}{clsTblFileName}", "a+")
-        tableFile.write(matchedObj["table"])
-        tableFile.close()
-        responses["files"].append(f"data{FILE_DELIMITER + clsTblFileName}")
+        with open(f"{CURRENT_DIR}data{FILE_DELIMITER}{clsTblFileName}", "w+") as tableFile:
+            tableFile.write(matchedObj["table"])
+        responses["files"].append(discord.File(f"{CURRENT_DIR}data{FILE_DELIMITER + clsTblFileName}"))
 
         # 2nd Embed (DETAILS)
         classDetailsEmbed = discord.Embed(
@@ -909,11 +906,9 @@ def constructResponse(entityInput: str, route: str, matchedObj: dict):
 
                     responses["embeds"].append(archTypeEmbed)
 
-                    archDesFile = open(f"data{FILE_DELIMITER}{clsArchFileName}", "a+")
-                    archDesFile.write(archtype["desc"])
-                    archDesFile.close()
-
-                    responses["files"].append(f"data{FILE_DELIMITER + clsArchFileName}")
+                    with open(f"{CURRENT_DIR}data{FILE_DELIMITER}{clsArchFileName}", "w+") as archDesFile:
+                        archDesFile.write(archtype["desc"])
+                    responses["files"].append(discord.File(f"{CURRENT_DIR}data{FILE_DELIMITER + clsArchFileName}"))
 
         # Finish up
         for response in responses["embeds"]:
@@ -940,11 +935,9 @@ def constructResponse(entityInput: str, route: str, matchedObj: dict):
 
             responses["embeds"].append(magicItemEmbed)
 
-            itemFile = open(f"data{FILE_DELIMITER}{mIfileName}", "a+")
-            itemFile.write(matchedObj["desc"])
-            itemFile.close()
-
-            responses["files"].append(f"data{FILE_DELIMITER + mIfileName}")
+            with open(f"{CURRENT_DIR}data{FILE_DELIMITER}{mIfileName}", "w+") as itemFile:
+                itemFile.write(matchedObj["desc"])
+            responses["files"].append(discord.File(f"{CURRENT_DIR}data{FILE_DELIMITER + mIfileName}"))
 
         else:
             magicItemEmbed = discord.Embed(
@@ -994,9 +987,8 @@ def constructResponse(entityInput: str, route: str, matchedObj: dict):
     else:
         badObjectFilename = generateFileName("badobject")
 
-        itemFile = open(f"data{FILE_DELIMITER}{badObjectFilename}", "a+")
-        itemFile.write(matchedObj)
-        itemFile.close()
+        with open(f"{CURRENT_DIR}data{FILE_DELIMITER}{badObjectFilename}", "w+") as itemFile:
+            itemFile.write(matchedObj)
 
         noRouteEmbed = discord.Embed(
             colour=discord.Colour.red(),
@@ -1006,7 +998,7 @@ def constructResponse(entityInput: str, route: str, matchedObj: dict):
         noRouteEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
 
         responses["embeds"].append(noRouteEmbed)
-        responses["files"].append(f"data{FILE_DELIMITER + badObjectFilename}")
+        responses["files"].append(discord.File(f"{CURRENT_DIR}data{FILE_DELIMITER + badObjectFilename}"))
 
     return responses
 
@@ -1183,6 +1175,7 @@ async def roll(interaction: discord.Interaction, calculation: str):
     stepCount = 1
 
     # Iterate over arguments array
+    await interaction.response.defer(thinking=True)
     for argument in calculationList:
 
         # Import cumulativeTotal from previous argument for the current argument
@@ -1362,14 +1355,12 @@ async def search(interaction: discord.Interaction, entityInput: Optional[str] = 
         # Generate a unique filename and write to it
         entityFileName = generateFileName("entsearch")
 
-        entityFile = open(f"data{FILE_DELIMITER}{entityFileName}", "a+")
-        for apiEntity in directoryRequest.json()["results"]:
-            if "title" in apiEntity.keys():
-                entityFile.write(f"{apiEntity['title']}\n")
-            else:
-                entityFile.write(f"{apiEntity['name']}\n")
-
-        entityFile.close()
+        with open(f"{CURRENT_DIR}data{FILE_DELIMITER}{entityFileName}", "w+") as entityFile:
+            for apiEntity in directoryRequest.json()["results"]:
+                if "title" in apiEntity.keys():
+                    entityFile.write(f"{apiEntity['title']}\n")
+                else:
+                    entityFile.write(f"{apiEntity['name']}\n")
 
         # Send embed notifying start of the spam stream
         detailsEmbed = discord.Embed(
@@ -1377,7 +1368,7 @@ async def search(interaction: discord.Interaction, entityInput: Optional[str] = 
             title=f"See `{entityFileName}` for all searchable entities in this directory",
             description="Due to discord character limits regarding embeds, the results have to be sent in a file"
         )
-        await interaction.followup.send(embed=detailsEmbed, file=discord.File(f"data/{entityFileName}"))
+        await interaction.followup.send(embed=detailsEmbed, file=discord.File(f"{CURRENT_DIR}data/{entityFileName}"))
 
     # Filter input to remove whitespaces and set lowercase
     filteredEntityInput = "".join(entityInput).lower()
@@ -1424,7 +1415,10 @@ async def search(interaction: discord.Interaction, entityInput: Optional[str] = 
         for fileItem in responses["files"]:
             print(fileItem)
 
-        await interaction.followup.send(embeds=responses["embeds"], files=responses["files"])
+        for embedItem in responses["embeds"]:
+            await interaction.followup.send(embed=embedItem)
+        if len(responses["files"]) > 0:
+            await interaction.followup.send(files=responses["files"])
 
 ###
 # FUNC NAME: /searchdir [DIRECTORY] [ENTITY]
@@ -1440,12 +1434,12 @@ async def searchdir(interaction: discord.Interaction, directoryInput: str, entit
 
     # Get api root directories
     await interaction.response.defer(thinking=True)
-    directories = getOpen5eRoot(interaction)
+    directories = getOpen5eRoot()
     if isinstance(directories, int):
         return await interaction.followup.send(embed=codeError(directories, "https://api.open5e.com?format=json"))
 
     # Filter inputs
-    filteredDirectoryInput = f"{directoryInput.lower()}/"
+    filteredDirectoryInput = directoryInput.lower()
     filteredEntityInput = "".join(entityInput).lower()
 
     # Verify arg length isn't over limits
@@ -1480,16 +1474,15 @@ async def searchdir(interaction: discord.Interaction, directoryInput: str, entit
         return await interaction.followup.send(embed=noDirectoryEmbed)
     
     # Send directory contents if no search term given
-    await interaction.response.defer(thinking=True)
     if len(filteredEntityInput) <= 0:
 
         # Get objects from directory, store in file
-        directoryRequest = requests.get(f"https://api.open5e.com/{filteredDirectoryInput}?format=json&limit=10000")
+        directoryRequest = requests.get(f"https://api.open5e.com/{filteredDirectoryInput}/?format=json&limit=10000")
 
         if directoryRequest.status_code != 200:
             return await interaction.followup.send(embed=codeError(
                 directoryRequest.status_code,
-                f"https://api.open5e.com/{filteredDirectoryInput}?format=json&limit=10000"
+                f"https://api.open5e.com/{filteredDirectoryInput}/?format=json&limit=10000"
             ))
 
         entityNames = []
@@ -1512,9 +1505,8 @@ async def searchdir(interaction: discord.Interaction, directoryInput: str, entit
         # Generate a unique filename and write to it
         entityDirFileName = generateFileName("entsearchdir")
 
-        entityFile = open(f"data{FILE_DELIMITER}{entityDirFileName}", "a+")
-        entityFile.write("\n".join(entityNames))
-        entityFile.close()
+        with open(f"{CURRENT_DIR}data{FILE_DELIMITER}{entityDirFileName}", "w+") as entityFile:
+            entityFile.write("\n".join(entityNames))
 
         # Send embed notifying start of the spam stream
         detailsEmbed = discord.Embed(
@@ -1523,11 +1515,11 @@ async def searchdir(interaction: discord.Interaction, directoryInput: str, entit
             description="Due to discord character limits regarding embeds, the results have to be sent in a file"
         )
         detailsEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
-        return await interaction.followup.send(embed=detailsEmbed, file=discord.File(f"data/{entityDirFileName}"))
+        return await interaction.followup.send(embed=detailsEmbed, file=discord.File(f"{CURRENT_DIR}data/{entityDirFileName}"))
 
     # Use first word to narrow search results down for quicker response on some directories
     splitEntityInput = entityInput.split(" ")
-    match = requestOpen5e(f"https://api.open5e.com/{filteredDirectoryInput}?format=json&limit=10000&{getRequestType(directoryInput)}={splitEntityInput[0]}", filteredEntityInput, False, False)
+    match = requestOpen5e(f"https://api.open5e.com/{filteredDirectoryInput}/?format=json&limit=10000&{getRequestType(directoryInput)}={splitEntityInput[0]}", filteredEntityInput, False, False)
 
     # An API Request failed
     if isinstance(match, dict) and "code" in match.keys():
@@ -1559,8 +1551,16 @@ async def searchdir(interaction: discord.Interaction, directoryInput: str, entit
             if match['partial'] is True:
                 response.set_footer(text=f"NOTE: Your search term ({filteredEntityInput}) was a PARTIAL match to this entity.\nIf this isn't the entity you were expecting, try refining your search term")
 
-        print(f"SENDING RESPONSES: {responses}...")
-        await interaction.followup.send(embeds=responses["embeds"], files=responses["files"])
+        print(f"SENDING RESPONSES...")
+        for embedItem in responses["embeds"]:
+            print(embedItem.to_dict())
+        for fileItem in responses["files"]:
+            print(fileItem)
+
+        for embedItem in responses["embeds"]:
+            await interaction.followup.send(embed=embedItem)
+        if len(responses["files"]) > 0:
+            await interaction.followup.send(files=responses["files"])
 
 ###
 # FUNC NAME: /lst [DIRECTORY] [ENTITY]
@@ -1582,28 +1582,33 @@ async def lst(interaction: discord.Interaction, entityInput: str, directoryInput
     matches = None
     filteredEntityInput = "".join(entityInput).lower()
     splitEntityInput = entityInput.split(" ")
-    filteredDirectoryInput = "".join(directoryInput).lower()
+    filteredDirectoryInput = directoryInput.lower()
 
     # Get api root directories
     await interaction.response.defer(thinking=True)
-    directories = getOpen5eRoot(interaction)
+    directories = getOpen5eRoot()
     if isinstance(directories, int):
         return await interaction.followup.send(embed=codeError(directories, "https://api.open5e.com?format=json"))
 
     # Verify directory exists
     wideSearching = False
-    if len(directoryInput) <= 0 or directories.count(f"{directoryInput}/") <= 0:
-        filteredDirectoryInput = "search/"
+    if len(directoryInput) <= 0 or directories.count(directoryInput) <= 0:
+        filteredDirectoryInput = "search"
         wideSearching = True
-    else:
-        filteredDirectoryInput = f"{filteredDirectoryInput}/"
+        await interaction.followup.send(
+            embed=discord.Embed(
+                color=discord.Colour.blue(),
+                title="FINDING ALL ENTITIES IN SEARCH/ DIRECTORY...",
+                description=f"WARNING: {directoryInput} is not a valid directory name. Your query will use the search/ directory instead. If this behaviour is unexpected, pass a valid directory name as your first parameter."
+            ).set_footer(text=f"Valid directory names = {', '.join(directories)}")
+        )
 
     # If an invalid or empty directory is given, default to wide search using search/ directory
     if wideSearching is True:
         matches = requestOpen5e(f"https://api.open5e.com/search?format=json&limit=10000&text={splitEntityInput[0]}", filteredEntityInput, wideSearching, True)
     else:
         # Use first word to narrow search results down for quicker response on some directories
-        matches = requestOpen5e(f"https://api.open5e.com/{filteredDirectoryInput}?format=json&limit=10000&{getRequestType(directoryInput)}={splitEntityInput[0]}", filteredEntityInput, wideSearching, True)
+        matches = requestOpen5e(f"https://api.open5e.com/{filteredDirectoryInput}/?format=json&limit=10000&{getRequestType(directoryInput)}={splitEntityInput[0]}", filteredEntityInput, wideSearching, True)
 
     # An API Request failed
     if isinstance(matches, dict) and "code" in matches.keys():
@@ -1616,20 +1621,17 @@ async def lst(interaction: discord.Interaction, entityInput: str, directoryInput
             description=f"No matches found for **{filteredEntityInput}** in the database or requested directory"
         )
         noMatchEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
-        if wideSearching is True:
-            noMatchEmbed.set_
         await interaction.followup.send(embed=noMatchEmbed)
     else:
         # Embeds have a max of 25 fields, so stick it in a file if we can't fit all of them in
+        matchesEmbed = discord.Embed(
+            colour=discord.Colour.green(),
+            title=f"SEARCH RESULTS FOR {filteredEntityInput}",
+            description="Results ***in italics*** are partial matches and may be less accurate. All others are full matches and line up with your search term as it is."
+        )
+        matchesEmbed.set_author(name=f"Requested by {interaction.user.display_name}", icon_url=f"{interaction.user.display_avatar}")
+        
         if len(matches) < 25:
-            # Accumulate all matches into one embed
-            matchesEmbed = discord.Embed(
-                colour=discord.Colour.green(),
-                title=f"SEARCH RESULTS FOR {filteredEntityInput}",
-                description="Results ***in italics*** are partial matches and may be less accurate. All others are full matches and line up with your search term as it is."
-            )
-            matchesEmbed.set_author(name=f"Requested by {interaction.user.display_name}", icon_url=f"{interaction.user.display_avatar}")
-
             for match in matches:
                 # Documents do not have a name identifier key
                 identifier = "name"
@@ -1657,13 +1659,6 @@ async def lst(interaction: discord.Interaction, entityInput: str, directoryInput
             print(f"SENDING EMBED: {matchesEmbed}...")
             await interaction.followup.send(embed=matchesEmbed)
         else:
-            matchesEmbed = discord.Embed(
-                colour=discord.Colour.green(),
-                title=f"SEARCH RESULTS FOR {filteredEntityInput}",
-                description="Results sandwiched inside asterisks (`**`) are partial matches and may be less accurate. All others are full matches and line up with your search term as it is."
-            )
-            matchesEmbed.set_author(name=f"Requested by {interaction.user.display_name}", icon_url=f"{interaction.user.display_avatar}")
-
             formattedMatches = ""
             for match in matches:
                 # Documents do not have a name identifier key
@@ -1679,29 +1674,13 @@ async def lst(interaction: discord.Interaction, entityInput: str, directoryInput
 
             # Create file and store matches in there
             matchesFileName = generateFileName("matches")
-            matchesFile = open(f"data{FILE_DELIMITER}{matchesFileName}", "a+")
-            matchesFile.write(formattedMatches)
-            matchesFile.close()
+            with open(f"{CURRENT_DIR}data{FILE_DELIMITER}{matchesFileName}", "w+") as matchesFile:
+                matchesFile.write(formattedMatches)
 
-            matchesEmbed.add_field(
-                name=f"See `{matchesFileName}` for the matched entities",
-                value="Due to discord character limits regarding embeds, the results have to be sent in a file",
-                inline=False
-            )
+            matchesEmbed.add_field(name=f"See `{matchesFileName}` for the matched entities", value="Due to discord character limits regarding embeds, the results have to be sent in a file", inline=False)
 
-            print(f"SENDING EMBED: {matchesEmbed}...")
+            print(f"SENDING EMBED: {matchesEmbed.to_dict()}...")
             print(f"SENDING FILE: {matchesFileName}...")
-            await interaction.followup.send(embed=matchesEmbed, file=discord.File(f"data/{matchesFileName}"))
-        
-        if wideSearching is True: 
-            await interaction.followup.send(
-                embed=discord.Embed(
-                    color=discord.Colour.blue(),
-                    title="FINDING ALL ENTITIES IN SEARCH/ DIRECTORY...",
-                    description=f"WARNING: {directoryInput} is not a valid directory name. Your query will use the search/ directory instead. If this behaviour is unexpected, pass a valid directory name as your first parameter."
-                ).set_footer(text=f"Valid directory names = {', '.join(directories)}")
-            )
-        else:
-            return True
+            await interaction.followup.send(embed=matchesEmbed, file=discord.File(f"{CURRENT_DIR}data/{matchesFileName}"))
 
 CLIENT.run(os.environ['BOT_KEY'])
