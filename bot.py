@@ -250,7 +250,7 @@ def requestOpen5e(query: str, filteredEntityInput: str, wideSearch: bool, listRe
 # FUNC TYPE: Function
 ###
 def constructResponse(entityInput: str, route: str, matchedObj: dict):
-    responses = {"files": [], "embeds": []}
+    responses = {"files": list(), "embeds": list()}
 
     # Document
     if "document" in route:
@@ -1418,7 +1418,12 @@ async def search(interaction: discord.Interaction, entityInput: Optional[str] = 
             else:
                 response.set_footer(text="NOTE: If this isn't the entity you were expecting, try refining your search term or use `/searchdir` instead")
 
-        print(f"SENDING RESPONSES: {responses}...")
+        print(f"SENDING RESPONSES...")
+        for embedItem in responses["embeds"]:
+            print(embedItem.to_dict())
+        for fileItem in responses["files"]:
+            print(fileItem)
+
         await interaction.followup.send(embeds=responses["embeds"], files=responses["files"])
 
 ###
