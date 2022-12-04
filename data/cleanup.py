@@ -15,7 +15,7 @@ FILE_DELIMITER = "\\" if platform.system() == "Windows" else "/"
 # FUNC TYPE: Function
 ###
 def cleanup():
-    FOLDER = os.getcwd() + f"{FILE_DELIMITER}data"
+    FOLDER = os.getcwd() + FILE_DELIMITER
     for filename in os.listdir(FOLDER):
         FILE = f"{FOLDER}{FILE_DELIMITER}{filename}"
         if ".md" in filename:

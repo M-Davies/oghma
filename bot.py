@@ -4,6 +4,7 @@
 # https://github.com/M-Davies/oghma
 ###
 
+import sys
 import os
 import requests
 import random
@@ -40,10 +41,13 @@ ROLL_MAX_PARAM_VALUE = 10001
 
 # Set up logging
 LOGGER = logging.getLogger()
-LOGGER.setLevel(logging.INFO)
-LOG_HANDLER = logging.FileHandler(filename=f"{CURRENT_DIR}{FILE_DELIMITER}logs{FILE_DELIMITER}oghma-{datetime.now().strftime('%d-%m-%Y')}.log", encoding="utf-8", mode="a")
-LOG_HANDLER.setFormatter(logging.Formatter("%(asctime)s: %(levelname)s: %(name)s: %(message)s"))
-LOGGER.addHandler(LOG_HANDLER)
+LOGGER.setLevel(LOGGER.info)
+LOG_FILE_HANDLER = logging.FileHandler(filename=f"{CURRENT_DIR}{FILE_DELIMITER}logs{FILE_DELIMITER}oghma-{datetime.now().strftime('%d-%m-%Y')}.log", encoding="utf-8", mode="a")
+LOG_FILE_HANDLER.setFormatter(logging.Formatter("%(asctime)s: %(levelname)s: %(name)s: %(message)s"))
+LOGGER.addHandler(LOG_FILE_HANDLER)
+LOG_OUTPUT_HANDLER = logging.StreamHandler(sys.stderr)
+LOG_OUTPUT_HANDLER.setFormatter(logging.Formatter("%(asctime)s: %(levelname)s: %(name)s: %(message)s"))
+LOGGER.addHandler(LOG_OUTPUT_HANDLER)
 
 ###
 # FUNC NAME: on_ready
@@ -52,9 +56,7 @@ LOGGER.addHandler(LOG_HANDLER)
 ###
 @CLIENT.event
 async def on_ready():
-    print(f"Logged in as\n{CLIENT.user.name}\n{CLIENT.user.id}\n------")
-    # All done!
-    print("READY!")
+    LOGGER.info(f"Logged in as {CLIENT.user.name} ({CLIENT.user.id})")
     
 ###
 # FUNC NAME: on_command_error
@@ -63,6 +65,7 @@ async def on_ready():
 ###
 @CLIENT.event
 async def on_error(interaction: discord.Interaction, error):
+    LOGGER.error(f"Error occurred during command execution: {error}")
 
     # Throw if discord failed to execute a command
     if isinstance(error, discord.app_commands.CommandInvokeError) or isinstance(error, discord.app_commands.BotMissingPermissions):
@@ -72,7 +75,7 @@ async def on_error(interaction: discord.Interaction, error):
             description=f"Do I have the right permissions (Send messages, Embeds and Files as well as Read Message History)?\n\n__ERROR__\n{error}"
         )
         invokeEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-        print("SENDING CommandInvokeError / BotMissingPermissions EMBED...")
+        LOGGER.info(f"SENDING CommandInvokeError / BotMissingPermissions EMBED: {invokeEmbed.to_dict()}")
         return await interaction.response.send_message(embed=invokeEmbed)
 
     # Throw if the user tries to execute a command that doesn't exist
@@ -83,7 +86,7 @@ async def on_error(interaction: discord.Interaction, error):
             description=f"Available commands are {COMMAND_LIST}"
         )
         notFoundEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-        print("SENDING CommandNotFound EMBED...")
+        LOGGER.info(f"SENDING CommandNotFound EMBED: {notFoundEmbed.to_dict()}")
         return await interaction.response.send_message(embed=notFoundEmbed)
 
     # Another unexpected error occurred
@@ -95,7 +98,7 @@ async def on_error(interaction: discord.Interaction, error):
         )
         unexpectedEmbed.add_field(name="NOTE", value="Please report this to https://github.com/M-Davies/oghma/issues stating how you encountered this bug and with the following information...", inline=False)
         unexpectedEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-        print("SENDING unexpectedEmbed EMBED...")
+        LOGGER.info(f"SENDING unexpectedEmbed EMBED: {unexpectedEmbed.to_dict()}")
         return await interaction.response.send_message(embed=unexpectedEmbed)
     
 ###
@@ -138,25 +141,30 @@ def searchResponse(responseResults, filteredEntityInput: str):
 ###
 def requestScryfall(splitSearchTerm: list, searchdir: bool):
 
-    scryfallRequest = requests.get(f"https://api.scryfall.com/cards/search?q={' '.join(splitSearchTerm)}&include_extras=true&include_multilingual=true&include_variations=true")
+    requestStr = f"https://api.scryfall.com/cards/search?q={' '.join(splitSearchTerm)}&include_extras=true&include_multilingual=true&include_variations=true"
+    scryfallRequest = requests.get(requestStr)
 
     # Try again with the first arg if nothing was found
     foundItem = {}
     if scryfallRequest.status_code == 404:
 
+        LOGGER.info(f"Scryfall 1st Attempt - No matches found for: {requestStr}")
         searchWord = splitSearchTerm[0]
         if searchdir is True:
             searchWord = splitSearchTerm[1]
 
-        scryfallWordRequest = requests.get(f"https://api.scryfall.com/cards/search?q={searchWord}&include_extras=true&include_multilingual=true&include_variations=true")
+        requestStr = f"https://api.scryfall.com/cards/search?q={searchWord}&include_extras=true&include_multilingual=true&include_variations=true"
+        scryfallWordRequest = requests.get(requestStr)
 
         if scryfallWordRequest.status_code != 200:
+            LOGGER.info(f"Scryfall 2nd Attempt - No matches found for: {requestStr}")
             return scryfallWordRequest.status_code
         else:
             foundItem = scryfallWordRequest.json()["data"][0]
 
     # Return code if API request failed
     elif scryfallRequest.status_code != 200:
+        LOGGER.warn(f"Scryfall 1st Attempt - API Request failed for: {requestStr}")
         return scryfallRequest.status_code
 
     # Otherwise, return the cropped image url
@@ -642,10 +650,10 @@ def constructResponse(entityInput: str, route: str, matchedObj: dict):
                     value=f"See `{bckFileName}` for full description",
                     inline=False
                 )
-
                 responses["embeds"].append(backgroundChars)
 
                 # Create characteristics file
+                LOGGER.info(f"Creating file: {bckFileName}")
                 with open(f"{CURRENT_DIR}data{FILE_DELIMITER}{bckFileName}", "w+") as characteristicsFile:
                     characteristicsFile.write(matchedObj["suggested_characteristics"])
 
@@ -690,6 +698,7 @@ def constructResponse(entityInput: str, route: str, matchedObj: dict):
             responses["embeds"].append(sectionEmbedDesc)
 
             # Full description as a file
+            LOGGER.info(f"Creating file: {sectionFilename}")
             with open(f"{CURRENT_DIR}data{FILE_DELIMITER}{sectionFilename}", "w+") as secDescFile:
                 secDescFile.write(matchedObj["desc"])
             responses["files"].append(discord.File(f"{CURRENT_DIR}data{FILE_DELIMITER + sectionFilename}"))
@@ -837,11 +846,13 @@ def constructResponse(entityInput: str, route: str, matchedObj: dict):
         responses["embeds"].append(classDescEmbed)
 
         # Full description as a file
+        LOGGER.info(f"Creating file: {clsDesFileName}")
         with open(f"{CURRENT_DIR}data{FILE_DELIMITER}{clsDesFileName}", "w+") as descFile:
             descFile.write(matchedObj["desc"])
         responses["files"].append(discord.File(f"{CURRENT_DIR}data{FILE_DELIMITER + clsDesFileName}"))
 
         # Class table as a file
+        LOGGER.info(f"Creating file: {clsTblFileName}")
         with open(f"{CURRENT_DIR}data{FILE_DELIMITER}{clsTblFileName}", "w+") as tableFile:
             tableFile.write(matchedObj["table"])
         responses["files"].append(discord.File(f"{CURRENT_DIR}data{FILE_DELIMITER + clsTblFileName}"))
@@ -906,6 +917,7 @@ def constructResponse(entityInput: str, route: str, matchedObj: dict):
 
                     responses["embeds"].append(archTypeEmbed)
 
+                    LOGGER.info(f"Creating file: {clsArchFileName}")
                     with open(f"{CURRENT_DIR}data{FILE_DELIMITER}{clsArchFileName}", "w+") as archDesFile:
                         archDesFile.write(archtype["desc"])
                     responses["files"].append(discord.File(f"{CURRENT_DIR}data{FILE_DELIMITER + clsArchFileName}"))
@@ -935,6 +947,7 @@ def constructResponse(entityInput: str, route: str, matchedObj: dict):
 
             responses["embeds"].append(magicItemEmbed)
 
+            LOGGER.info(f"Creating file: {mIfileName}")
             with open(f"{CURRENT_DIR}data{FILE_DELIMITER}{mIfileName}", "w+") as itemFile:
                 itemFile.write(matchedObj["desc"])
             responses["files"].append(discord.File(f"{CURRENT_DIR}data{FILE_DELIMITER + mIfileName}"))
@@ -987,6 +1000,7 @@ def constructResponse(entityInput: str, route: str, matchedObj: dict):
     else:
         badObjectFilename = generateFileName("badobject")
 
+        LOGGER.info(f"Creating file: {badObjectFilename}")
         with open(f"{CURRENT_DIR}data{FILE_DELIMITER}{badObjectFilename}", "w+") as itemFile:
             itemFile.write(matchedObj)
 
@@ -1029,7 +1043,7 @@ def codeError(statusCode: int, query: str):
     )
 
     codeEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-
+    LOGGER.error(f"Sending Open5e Root API Request FAILED embed = {codeEmbed.to_dict()}")
     return codeEmbed
 
 ###
@@ -1062,6 +1076,7 @@ def getOpen5eRoot():
         return allDirectories
     else:
         # Throw if Root request wasn't successful
+        LOGGER.error(f"API Request to Open5e root directory FAILED. Code: {rootRequest.status_code}")
         return rootRequest.status_code
 
 ###
@@ -1090,6 +1105,7 @@ async def help(interaction: discord.Interaction):
     helpEmbed.add_field(name="Discord", value="https://discord.gg/8YZ2NZ5", inline=True)
     helpEmbed.set_footer(text="Feedback? Hate? Make it known to us! (see links above)")
 
+    LOGGER.info(f"Sending /help embed: {helpEmbed.to_dict()}")
     await interaction.response.send_message(embed=helpEmbed)
 
 ###
@@ -1333,7 +1349,7 @@ async def roll(interaction: discord.Interaction, calculation: str):
 @app_commands.describe(entityInput = "The entity you would like to search for")
 async def search(interaction: discord.Interaction, entityInput: Optional[str] = ""):
 
-    print(f"Executing: /search {entityInput}")
+    LOGGER.info(f"Executing: /search {entityInput}")
 
     # Verify arg length isn't over limits
     if len(entityInput) >= 201:
@@ -1355,6 +1371,7 @@ async def search(interaction: discord.Interaction, entityInput: Optional[str] = 
         # Generate a unique filename and write to it
         entityFileName = generateFileName("entsearch")
 
+        LOGGER.info(f"Creating file: {entityFileName}")
         with open(f"{CURRENT_DIR}data{FILE_DELIMITER}{entityFileName}", "w+") as entityFile:
             for apiEntity in directoryRequest.json()["results"]:
                 if "title" in apiEntity.keys():
@@ -1379,10 +1396,12 @@ async def search(interaction: discord.Interaction, entityInput: Optional[str] = 
 
     # An API Request failed
     if isinstance(match, dict) and "code" in match.keys():
+        LOGGER.error(f"Open5e search/ API Request FAILED: {match}")
         return await interaction.followup.send(embed=codeError(match["code"], match["query"]))
 
     # No entity was found
     elif match == []:
+        LOGGER.info(f"No match found for {filteredEntityInput} in search/ directory")
         noMatchEmbed = discord.Embed(
             colour=discord.Colour.orange(),
             title="ERROR",
@@ -1409,15 +1428,11 @@ async def search(interaction: discord.Interaction, entityInput: Optional[str] = 
             else:
                 response.set_footer(text="NOTE: If this isn't the entity you were expecting, try refining your search term or use `/searchdir` instead")
 
-        print(f"SENDING RESPONSES...")
         for embedItem in responses["embeds"]:
-            print(embedItem.to_dict())
-        for fileItem in responses["files"]:
-            print(fileItem)
-
-        for embedItem in responses["embeds"]:
+            LOGGER.info(f"Sending embed - {embedItem.to_dict()}")
             await interaction.followup.send(embed=embedItem)
         if len(responses["files"]) > 0:
+            LOGGER.info(f"Sending files - {responses['files']}")
             await interaction.followup.send(files=responses["files"])
 
 ###
@@ -1430,7 +1445,8 @@ async def search(interaction: discord.Interaction, entityInput: Optional[str] = 
 @app_commands.describe(directoryInput = "The category to search for the entity in", entityInput = "The entity you would like to search for")
 async def searchdir(interaction: discord.Interaction, directoryInput: str, entityInput: Optional[str] = ""):
     
-    print(f"EXECUTING: /searchdir {directoryInput} {entityInput}")
+    LOGGER.info(f"EXECUTING: /searchdir {directoryInput} {entityInput}")
+    # TODO: Continue adding logs after OS update completes
 
     # Get api root directories
     await interaction.response.defer(thinking=True)
@@ -1505,6 +1521,7 @@ async def searchdir(interaction: discord.Interaction, directoryInput: str, entit
         # Generate a unique filename and write to it
         entityDirFileName = generateFileName("entsearchdir")
 
+        LOGGER.info(f"Creating file: {entityDirFileName}")
         with open(f"{CURRENT_DIR}data{FILE_DELIMITER}{entityDirFileName}", "w+") as entityFile:
             entityFile.write("\n".join(entityNames))
 
@@ -1674,6 +1691,7 @@ async def lst(interaction: discord.Interaction, entityInput: str, directoryInput
 
             # Create file and store matches in there
             matchesFileName = generateFileName("matches")
+            LOGGER.info(f"Creating file: {matchesFileName}")
             with open(f"{CURRENT_DIR}data{FILE_DELIMITER}{matchesFileName}", "w+") as matchesFile:
                 matchesFile.write(formattedMatches)
 
