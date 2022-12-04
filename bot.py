@@ -56,50 +56,15 @@ LOGGER.addHandler(LOG_OUTPUT_HANDLER)
 ###
 @CLIENT.event
 async def on_ready():
+    for g in CLIENT.guilds:
+        LOGGER.info(f"Syncing commands for guild = {g.name}:{g.id}...")
+        try:
+            currentGuild = discord.Object(id=g.id)
+            CLIENT.tree.copy_global_to(guild=currentGuild)
+            await CLIENT.tree.sync(guild=currentGuild)
+        except Exception as e:
+            LOGGER.warning(f"FAILED to sync commands for {g.name}:{g.id}. Error = {e}")
     LOGGER.info(f"Logged in as {CLIENT.user.name} ({CLIENT.user.id})")
-    
-###
-# FUNC NAME: on_command_error
-# FUNC DESC: Sends useful output on an error occurance to the user
-# FUNC TYPE: Event
-###
-@CLIENT.event
-async def on_error(interaction: discord.Interaction, error):
-    LOGGER.error(f"Error occurred during command execution: {error}")
-
-    # Throw if discord failed to execute a command
-    if isinstance(error, discord.app_commands.CommandInvokeError) or isinstance(error, discord.app_commands.BotMissingPermissions):
-        invokeEmbed = discord.Embed(
-            colour=discord.Colour.red(),
-            title="COMMAND FAILED TO EXECUTE",
-            description=f"Do I have the right permissions (Send messages, Embeds and Files as well as Read Message History)?\n\n__ERROR__\n{error}"
-        )
-        invokeEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-        LOGGER.info(f"SENDING CommandInvokeError / BotMissingPermissions EMBED: {invokeEmbed.to_dict()}")
-        return await interaction.response.send_message(embed=invokeEmbed)
-
-    # Throw if the user tries to execute a command that doesn't exist
-    elif isinstance(error, discord.app_commands.CommandNotFound):
-        notFoundEmbed = discord.Embed(
-            colour=discord.Colour.red(),
-            title="COMMAND DOES NOT EXIST",
-            description=f"Available commands are {COMMAND_LIST}"
-        )
-        notFoundEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-        LOGGER.info(f"SENDING CommandNotFound EMBED: {notFoundEmbed.to_dict()}")
-        return await interaction.response.send_message(embed=notFoundEmbed)
-
-    # Another unexpected error occurred
-    else:
-        unexpectedEmbed = discord.Embed(
-            colour=discord.Colour.red(),
-            title="UNEXPECTED EXCEPTION OCCURRED",
-            description=error
-        )
-        unexpectedEmbed.add_field(name="NOTE", value="Please report this to https://github.com/M-Davies/oghma/issues stating how you encountered this bug and with the following information...", inline=False)
-        unexpectedEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-        LOGGER.info(f"SENDING unexpectedEmbed EMBED: {unexpectedEmbed.to_dict()}")
-        return await interaction.response.send_message(embed=unexpectedEmbed)
     
 ###
 # FUNC NAME: searchResponse
@@ -139,7 +104,7 @@ def searchResponse(responseResults, filteredEntityInput: str):
 # FUNC DESC: Queries the Scryfall API to obtain a thumbnail image.
 # FUNC TYPE: Function
 ###
-def requestScryfall(splitSearchTerm: list, searchdir: bool):
+def requestScryfall(splitSearchTerm: list):
 
     requestStr = f"https://api.scryfall.com/cards/search?q={' '.join(splitSearchTerm)}&include_extras=true&include_multilingual=true&include_variations=true"
     scryfallRequest = requests.get(requestStr)
@@ -147,13 +112,8 @@ def requestScryfall(splitSearchTerm: list, searchdir: bool):
     # Try again with the first arg if nothing was found
     foundItem = {}
     if scryfallRequest.status_code == 404:
-
         LOGGER.info(f"Scryfall 1st Attempt - No matches found for: {requestStr}")
-        searchWord = splitSearchTerm[0]
-        if searchdir is True:
-            searchWord = splitSearchTerm[1]
-
-        requestStr = f"https://api.scryfall.com/cards/search?q={searchWord}&include_extras=true&include_multilingual=true&include_variations=true"
+        requestStr = f"https://api.scryfall.com/cards/search?q={splitSearchTerm[0]}&include_extras=true&include_multilingual=true&include_variations=true"
         scryfallWordRequest = requests.get(requestStr)
 
         if scryfallWordRequest.status_code != 200:
@@ -164,7 +124,7 @@ def requestScryfall(splitSearchTerm: list, searchdir: bool):
 
     # Return code if API request failed
     elif scryfallRequest.status_code != 200:
-        LOGGER.warn(f"Scryfall 1st Attempt - API Request failed for: {requestStr}")
+        LOGGER.warning(f"Scryfall 1st Attempt - API Request failed for: {requestStr}")
         return scryfallRequest.status_code
 
     # Otherwise, return the cropped image url
@@ -1351,7 +1311,7 @@ async def search(interaction: discord.Interaction, entityInput: Optional[str] = 
 
     # Verify arg length isn't over limits
     if len(entityInput) >= 201:
-        LOGGER.warn(f"Failed to execute /search, args lengths too long = {entityInput}")
+        LOGGER.warning(f"Failed to execute /search, args lengths too long = {entityInput}")
         return await interaction.response.send_message(embed=argLengthError())
 
     # Send directory contents if no search term given
@@ -1414,7 +1374,7 @@ async def search(interaction: discord.Interaction, entityInput: Optional[str] = 
         responses = constructResponse(entityInput, match["route"], match["entity"])
         for response in responses["embeds"]:
             # Set a thumbnail for relevant embeds and on successful Scryfall request, overwriting all other thumbnail setup
-            image = requestScryfall(splitEntityInput, False)
+            image = requestScryfall(splitEntityInput)
 
             if (not isinstance(image, int)):
                 response.set_thumbnail(url=image)
@@ -1555,7 +1515,7 @@ async def searchdir(interaction: discord.Interaction, directoryInput: str, entit
         responses = constructResponse(entityInput, filteredDirectoryInput, match['entity'])
         for response in responses["embeds"]:
             # Set a thumbnail for relevant embeds and on successful Scryfall request, overwrites other thumbnail setup
-            image = requestScryfall(splitEntityInput, True)
+            image = requestScryfall(splitEntityInput)
 
             if (not isinstance(image, int)):
                 response.set_thumbnail(url=image)
