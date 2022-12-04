@@ -41,7 +41,7 @@ ROLL_MAX_PARAM_VALUE = 10001
 
 # Set up logging
 LOGGER = logging.getLogger()
-LOGGER.setLevel(LOGGER.info)
+LOGGER.setLevel(logging.INFO)
 LOG_FILE_HANDLER = logging.FileHandler(filename=f"{CURRENT_DIR}{FILE_DELIMITER}logs{FILE_DELIMITER}oghma-{datetime.now().strftime('%d-%m-%Y')}.log", encoding="utf-8", mode="a")
 LOG_FILE_HANDLER.setFormatter(logging.Formatter("%(asctime)s: %(levelname)s: %(name)s: %(message)s"))
 LOGGER.addHandler(LOG_FILE_HANDLER)
@@ -1104,9 +1104,7 @@ async def help(interaction: discord.Interaction):
     helpEmbed.add_field(name="GitHub", value="https://github.com/M-Davies/oghma", inline=True)
     helpEmbed.add_field(name="Discord", value="https://discord.gg/8YZ2NZ5", inline=True)
     helpEmbed.set_footer(text="Feedback? Hate? Make it known to us! (see links above)")
-
-    LOGGER.info(f"Sending /help embed: {helpEmbed.to_dict()}")
-    await interaction.response.send_message(embed=helpEmbed)
+    return await interaction.response.send_message(embed=helpEmbed)
 
 ###
 # FUNC NAME: /roll
@@ -1117,7 +1115,7 @@ async def help(interaction: discord.Interaction):
 @app_commands.describe(calculation = "The calculation to conduct")
 async def roll(interaction: discord.Interaction, calculation: str):
 
-    print(f"Executing: /roll {calculation}")
+    LOGGER.info(f"Executing: /roll {calculation}")
 
     # Return invalid args embed (to be called later)
     def invalidArgSupplied(culprit):
@@ -1127,7 +1125,7 @@ async def roll(interaction: discord.Interaction, calculation: str):
             description="This is likely due to the value being too low or high.\n\n**USAGE**\n`/roll [ROLLS]d[SIDES]`\n*Example:* `/roll 3d20 + 3`"
         )
         invalidArgsEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-
+        LOGGER.info(f"Invalid argument supplied to /roll = {culprit}")
         return invalidArgsEmbed
 
     # Return invalid size of args supplied embed (to be called later)
@@ -1138,7 +1136,7 @@ async def roll(interaction: discord.Interaction, calculation: str):
             description=f"ROLLS and SIDES and STATIC NUMBERS supplied to `/roll` must be numbers of a reasonable value (CURRENT LIMIT = {ROLL_MAX_PARAM_VALUE}).\n\n**USAGE**\n`?roll [ROLLS]d[SIDES]`\n*Example:* `?roll 3d20 + 3`"
         )
         invalidSizeEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-
+        LOGGER.info(f"Invalid size of argument supplied to /roll = {culprit}")
         return invalidSizeEmbed
 
     # Return invalid numeric operator embed (to be called later)
@@ -1149,11 +1147,12 @@ async def roll(interaction: discord.Interaction, calculation: str):
             description=f"**SUPPORTED OPERATORS:**\n{NUMERIC_OPERATORS}"
         )
         invalidOperatorEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-
+        LOGGER.info(f"Unrecognised numeric operator supplied to /roll = {numericOperator}")
         return invalidOperatorEmbed
 
     # Verify arg length isn't over limits
     if len(calculation) >= 201:
+        LOGGER.info(f"Failed to execute /roll, args lengths too long = {calculation}")
         return await interaction.response.send_message(embed=argLengthError())
 
     # Parse input
@@ -1336,8 +1335,7 @@ async def roll(interaction: discord.Interaction, calculation: str):
 
     # Append final total and send embed
     diceRollEmbed.insert_field_at(index=1, name="TOTAL", value=f"`{runningTotal}`", inline=False)
-    print(f"SENDING EMBED: {diceRollEmbed.title}...")
-    await interaction.response.send_message(embed=diceRollEmbed)
+    return await interaction.response.send_message(embed=diceRollEmbed)
 
 ###
 # FUNC NAME: /search [ENTITY]
@@ -1353,6 +1351,7 @@ async def search(interaction: discord.Interaction, entityInput: Optional[str] = 
 
     # Verify arg length isn't over limits
     if len(entityInput) >= 201:
+        LOGGER.warn(f"Failed to execute /search, args lengths too long = {entityInput}")
         return await interaction.response.send_message(embed=argLengthError())
 
     # Send directory contents if no search term given
@@ -1385,7 +1384,7 @@ async def search(interaction: discord.Interaction, entityInput: Optional[str] = 
             title=f"See `{entityFileName}` for all searchable entities in this directory",
             description="Due to discord character limits regarding embeds, the results have to be sent in a file"
         )
-        await interaction.followup.send(embed=detailsEmbed, file=discord.File(f"{CURRENT_DIR}data/{entityFileName}"))
+        return await interaction.followup.send(embed=detailsEmbed, file=discord.File(f"{CURRENT_DIR}data/{entityFileName}"))
 
     # Filter input to remove whitespaces and set lowercase
     filteredEntityInput = "".join(entityInput).lower()
@@ -1407,9 +1406,7 @@ async def search(interaction: discord.Interaction, entityInput: Optional[str] = 
             title="ERROR",
             description=f"No matches found for **{filteredEntityInput}** in the search/ directory"
         )
-
         noMatchEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
-
         return await interaction.followup.send(embed=noMatchEmbed)
 
     # Otherwise, construct & send responses
@@ -1433,7 +1430,7 @@ async def search(interaction: discord.Interaction, entityInput: Optional[str] = 
             await interaction.followup.send(embed=embedItem)
         if len(responses["files"]) > 0:
             LOGGER.info(f"Sending files - {responses['files']}")
-            await interaction.followup.send(files=responses["files"])
+            return await interaction.followup.send(files=responses["files"])
 
 ###
 # FUNC NAME: /searchdir [DIRECTORY] [ENTITY]
@@ -1446,7 +1443,6 @@ async def search(interaction: discord.Interaction, entityInput: Optional[str] = 
 async def searchdir(interaction: discord.Interaction, directoryInput: str, entityInput: Optional[str] = ""):
     
     LOGGER.info(f"EXECUTING: /searchdir {directoryInput} {entityInput}")
-    # TODO: Continue adding logs after OS update completes
 
     # Get api root directories
     await interaction.response.defer(thinking=True)
@@ -1568,16 +1564,10 @@ async def searchdir(interaction: discord.Interaction, directoryInput: str, entit
             if match['partial'] is True:
                 response.set_footer(text=f"NOTE: Your search term ({filteredEntityInput}) was a PARTIAL match to this entity.\nIf this isn't the entity you were expecting, try refining your search term")
 
-        print(f"SENDING RESPONSES...")
-        for embedItem in responses["embeds"]:
-            print(embedItem.to_dict())
-        for fileItem in responses["files"]:
-            print(fileItem)
-
         for embedItem in responses["embeds"]:
             await interaction.followup.send(embed=embedItem)
         if len(responses["files"]) > 0:
-            await interaction.followup.send(files=responses["files"])
+            return await interaction.followup.send(files=responses["files"])
 
 ###
 # FUNC NAME: /lst [DIRECTORY] [ENTITY]
@@ -1589,7 +1579,7 @@ async def searchdir(interaction: discord.Interaction, directoryInput: str, entit
 @app_commands.describe(entityInput = "The entity you would like to search for", directoryInput = "The category to search for the entity in")
 async def lst(interaction: discord.Interaction, entityInput: str, directoryInput: Optional[str] = ""):
 
-    print(f"EXECUTING: /lst {entityInput} {directoryInput}")
+    LOGGER.info(f"EXECUTING: /lst {entityInput} {directoryInput}")
 
     # Verify arg length isn't over limits
     if len(entityInput) >= 201:
@@ -1605,6 +1595,7 @@ async def lst(interaction: discord.Interaction, entityInput: str, directoryInput
     await interaction.response.defer(thinking=True)
     directories = getOpen5eRoot()
     if isinstance(directories, int):
+        LOGGER.error(f"Open5e Root API Request FAILED: {directories}")
         return await interaction.followup.send(embed=codeError(directories, "https://api.open5e.com?format=json"))
 
     # Verify directory exists
@@ -1629,7 +1620,7 @@ async def lst(interaction: discord.Interaction, entityInput: str, directoryInput
 
     # An API Request failed
     if isinstance(matches, dict) and "code" in matches.keys():
-        await interaction.followup.send(embed=codeError(matches['code'], matches['query']))
+        return await interaction.followup.send(embed=codeError(matches['code'], matches['query']))
     # Nothing was found
     elif matches is []:
         noMatchEmbed = discord.Embed(
@@ -1638,7 +1629,8 @@ async def lst(interaction: discord.Interaction, entityInput: str, directoryInput
             description=f"No matches found for **{filteredEntityInput}** in the database or requested directory"
         )
         noMatchEmbed.set_thumbnail(url="https://i.imgur.com/obEXyeX.png")
-        await interaction.followup.send(embed=noMatchEmbed)
+        LOGGER.info(f"No match found for {filteredEntityInput} in {filteredDirectoryInput}/ directory")
+        return await interaction.followup.send(embed=noMatchEmbed)
     else:
         # Embeds have a max of 25 fields, so stick it in a file if we can't fit all of them in
         matchesEmbed = discord.Embed(
@@ -1663,18 +1655,17 @@ async def lst(interaction: discord.Interaction, entityInput: str, directoryInput
                 if match['partial'] is True:
                     matchesEmbed.add_field(
                         name=f"*{match['entity'][identifier]}*",
-                        value=f"*In {entityDirectory[:-1]}*",
+                        value=f"*Directory = {entityDirectory[:-1]}*",
                         inline=True
                     )
                 else:
                     matchesEmbed.add_field(
                         name=match['entity'][identifier],
-                        value=f"In {entityDirectory[:-1]}",
+                        value=f"Directory = {entityDirectory[:-1]}",
                         inline=True
                     )
 
-            print(f"SENDING EMBED: {matchesEmbed}...")
-            await interaction.followup.send(embed=matchesEmbed)
+            return await interaction.followup.send(embed=matchesEmbed)
         else:
             formattedMatches = ""
             for match in matches:
@@ -1685,9 +1676,9 @@ async def lst(interaction: discord.Interaction, entityInput: str, directoryInput
 
                 # Display result in field title, directory in value
                 if match['partial'] is True:
-                    formattedMatches += f"*{match['entity'][identifier]} : In {match['entity']['route'] if filteredDirectoryInput == '' else filteredDirectoryInput}*\n"
+                    formattedMatches += f"*{match['entity'][identifier]} : Directory = {match['entity']['route'] if filteredDirectoryInput == '' else filteredDirectoryInput}*\n"
                 else:
-                    formattedMatches += f"{match['entity'][identifier]} : In {match['entity']['route'] if filteredDirectoryInput == '' else filteredDirectoryInput}\n"
+                    formattedMatches += f"{match['entity'][identifier]} : Directory = {match['entity']['route'] if filteredDirectoryInput == '' else filteredDirectoryInput}\n"
 
             # Create file and store matches in there
             matchesFileName = generateFileName("matches")
@@ -1696,9 +1687,6 @@ async def lst(interaction: discord.Interaction, entityInput: str, directoryInput
                 matchesFile.write(formattedMatches)
 
             matchesEmbed.add_field(name=f"See `{matchesFileName}` for the matched entities", value="Due to discord character limits regarding embeds, the results have to be sent in a file", inline=False)
-
-            print(f"SENDING EMBED: {matchesEmbed.to_dict()}...")
-            print(f"SENDING FILE: {matchesFileName}...")
-            await interaction.followup.send(embed=matchesEmbed, file=discord.File(f"{CURRENT_DIR}data/{matchesFileName}"))
+            return await interaction.followup.send(embed=matchesEmbed, file=discord.File(f"{CURRENT_DIR}data/{matchesFileName}"))
 
 CLIENT.run(os.environ['BOT_KEY'])
