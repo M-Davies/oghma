@@ -43,7 +43,7 @@ Display bot latency, author information (me!) and useful data. Pretty simple tbh
 - `ROLLS` and `SIDES` values are treated as single decimal point values but any standalone numbers are treated as decimal pointed. Meaning, `/roll 1d20.5` would evaluate to `/roll 1d20` but `/roll 1d20.5 + 7.5` would evaluate to `/roll 1d20 + 7.5`.
 - Spaces must be placed between operators and arguments, otherwise it's likely your dice roll will not be calculated correctly. `/roll 3d4 + 3` is fine but `/roll 3d4+3` would only evaluate to `/roll 3d4`.
 
-![Image of Rolls Example](/images/rollsExample.png)
+![Image of Rolls Example](https://raw.githubusercontent.com/M-Davies/oghma/master/images/rollsExample.png)
 
 - The steps are listed to show a user what order the program has calculated the final total in, as well as showing the running/cumulative total at that time of calculation.
 
@@ -71,7 +71,7 @@ We have a top.gg page! Assuming the link in the image above doesn't work, [click
 
 ## Contributing
 
-All contributions are welcome! Please join our [discord](https://discord.gg/8YZ2NZ5) and post a greeting in `#contributing` to get started. Also check out our [Testing.md](./TESTING.md) guide to setting up your own test bot to push new features and fixes (requires joining the discord)!
+All contributions are welcome! Please join our [discord](https://discord.gg/8YZ2NZ5) and post a greeting in `#contributing` to get started. Also check out our [Testing.md](https://github.com/M-Davies/oghma/blob/master/TESTING.md) guide to setting up your own test bot to push new features and fixes (requires joining the discord)!
 It's just me working on the bot at the moment so any and all help would be appreciated :)
 
 ## Privacy
