@@ -1,5 +1,4 @@
 .vscode
 .env
-test.py
-discord.log
+*.log
 data/*.md
