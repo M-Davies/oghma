@@ -27,9 +27,15 @@ if platform.system() == "Windows":
 CURRENT_DIR = f"{os.path.dirname(os.path.realpath(__file__))}/"
 
 class OghmaClient(discord.Client):
+    SUPPORT_GUILD = discord.Object(id=723473275803533323)
     def __init__(self, *, intents: discord.Intents):
         super().__init__(intents=intents)
         self.tree = app_commands.CommandTree(self)
+    async def setup_hook(self):
+        # This copies the global commands over to your guild.
+        LOGGER.info("Copying guild tree commands to support guild server...")
+        self.tree.copy_global_to(guild=self.SUPPORT_GUILD)
+        await self.tree.sync(guild=self.SUPPORT_GUILD)
 
 INTENTS = discord.Intents.default()
 CLIENT = OghmaClient(intents=INTENTS)
@@ -56,14 +62,6 @@ LOGGER.addHandler(LOG_OUTPUT_HANDLER)
 ###
 @CLIENT.event
 async def on_ready():
-    for g in CLIENT.guilds:
-        LOGGER.info(f"Syncing commands for guild = {g.name}:{g.id}...")
-        try:
-            currentGuild = discord.Object(id=g.id)
-            CLIENT.tree.copy_global_to(guild=currentGuild)
-            await CLIENT.tree.sync(guild=currentGuild)
-        except Exception as e:
-            LOGGER.warning(f"FAILED to sync commands for {g.name}:{g.id}. Error = {e}")
     LOGGER.info(f"Logged in as {CLIENT.user.name} ({CLIENT.user.id})")
     
 ###
