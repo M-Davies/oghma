@@ -7,6 +7,19 @@
 This is (yet another) discord bot for dnd groups on discord. The bot is pretty simple, it pulls in and parses data from [Open5e](https://open5e.com/) to be displayed in discord.
 The whole Open5e database is utilised, meaning you can query the bot for dnd conditions, spells, monsters, whatever you need to lookup in the heat of the moment!
 
+## Table of Contents
+
+- **[How it works](#how-it-works)**
+- **[Commands](#commands)**
+  - **[/help](#help)**
+  - **[/roll](#roll-calculation)**
+  - **[/search](#search-entity)**
+  - **[/searchdir](#searchdir-directory-entity)**
+  - **[/lst](#lst-entity-directory)**
+- **[How to add to your server](#how-to-add-to-your-server)**
+- **[Contributing](#contributing)**
+- **[Privacy](#privacy)**
+
 ## How it works
 
 The bot accepts a search phrase (known as an entity) which it feeds into the [Open5e API](https://api.open5e.com/), using various boring parsing and filtration techniques to ensure the request is legit. The bot first searches the API for an exact match, then for a partial one (i.e. `dragon` will match `adult black dragon`).
@@ -72,8 +85,8 @@ We have a top.gg page! Assuming the link in the image above doesn't work, [click
 ## Contributing
 
 All contributions are welcome! Please join our [discord](https://discord.gg/8YZ2NZ5) and post a greeting in `#contributing` to get started. Also check out our [Testing.md](https://github.com/M-Davies/oghma/blob/master/TESTING.md) guide to setting up your own test bot to push new features and fixes (requires joining the discord)!
-It's just me working on the bot at the moment so any and all help would be appreciated :)
+It's just me working on the bot at the moment so any and all help would be appreciated.
 
-## Privacy
+## Privacy
 
 No user data is stored on who executed what command, just logs of what command was initiated anonymously are stored for debugging purposes. 
