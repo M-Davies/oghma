@@ -42,11 +42,12 @@ class OghmaClient(discord.Client):
     def __init__(self, *, intents: discord.Intents):
         super().__init__(intents=intents)
         self.tree = app_commands.CommandTree(self)
-    # async def setup_hook(self):
-    #     # This copies the global commands over to your guild.
-    #     LOGGER.info("Copying guild tree commands to support guild server...")
-    #     self.tree.copy_global_to(guild=self.SUPPORT_GUILD)
-    #     await self.tree.sync(guild=self.SUPPORT_GUILD)
+
+    async def setup_hook(self):
+        # This copies the global commands over to your guild.
+        LOGGER.info("Copying guild tree commands to support guild server...")
+        self.tree.copy_global_to(guild=self.SUPPORT_GUILD)
+        await self.tree.sync(guild=self.SUPPORT_GUILD)
 
 INTENTS = discord.Intents.default()
 CLIENT = OghmaClient(intents=INTENTS)
