@@ -3,10 +3,12 @@ FROM ubuntu
 ENV DEBIAN_FRONTEND noninteractive
 
 WORKDIR /app
+RUN mkdir logs/
+RUN mkdir data/
 
 COPY requirements.txt .
 COPY bot.py .
-COPY data/ .
+COPY cleanup.py data/.
 COPY .env .
 
 # Update system
@@ -26,7 +28,6 @@ RUN python --version
 RUN crontab -l | { cat; echo "0 3 * * * python /app/data/cleanup.py"; } | crontab -
 
 # Run bot
-RUN mkdir logs/
 RUN python -m pip install -r requirements.txt
 
 CMD ["python", "bot.py"]
