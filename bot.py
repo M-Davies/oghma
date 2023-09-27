@@ -38,14 +38,15 @@ LOGGER.addHandler(LOG_OUTPUT_HANDLER)
 
 class OghmaClient(discord.Client):
     SUPPORT_GUILD = discord.Object(id=723473275803533323)
+    
     def __init__(self, *, intents: discord.Intents):
         super().__init__(intents=intents)
         self.tree = app_commands.CommandTree(self)
-    async def setup_hook(self):
-        # This copies the global commands over to your guild.
-        LOGGER.info("Copying guild tree commands to support guild server...")
-        self.tree.copy_global_to(guild=self.SUPPORT_GUILD)
-        await self.tree.sync(guild=self.SUPPORT_GUILD)
+    # async def setup_hook(self):
+    #     # This copies the global commands over to your guild.
+    #     LOGGER.info("Copying guild tree commands to support guild server...")
+    #     self.tree.copy_global_to(guild=self.SUPPORT_GUILD)
+    #     await self.tree.sync(guild=self.SUPPORT_GUILD)
 
 INTENTS = discord.Intents.default()
 CLIENT = OghmaClient(intents=INTENTS)
@@ -1070,7 +1071,7 @@ async def help(interaction: discord.Interaction):
 # FUNC TYPE: Command
 ###
 @CLIENT.tree.command(description="Runs a quick & easy dice roller")
-@app_commands.describe(calculation = "The calculation to conduct")
+@app_commands.describe(calculation="The calculation to conduct")
 async def roll(interaction: discord.Interaction, calculation: str):
 
     LOGGER.info(f"Executing: /roll {calculation}")
@@ -1301,8 +1302,8 @@ async def roll(interaction: discord.Interaction, calculation: str):
 # FUNC TYPE: Command
 ###
 @CLIENT.tree.command(description="Queries the Open5e API to get the requested entity")
-@app_commands.rename(entityInput = "entity")
-@app_commands.describe(entityInput = "The entity you would like to search for")
+@app_commands.rename(entityInput="entity")
+@app_commands.describe(entityInput="The entity you would like to search for")
 async def search(interaction: discord.Interaction, entityInput: Optional[str] = ""):
 
     LOGGER.info(f"Executing: /search {entityInput}")
@@ -1396,8 +1397,8 @@ async def search(interaction: discord.Interaction, entityInput: Optional[str] = 
 # FUNC TYPE: Command
 ###
 @CLIENT.tree.command(description="Queries the Open5e API to get an entity's information from a specified directory.")
-@app_commands.rename(directoryInput = "directory", entityInput = "entity")
-@app_commands.describe(directoryInput = "The category to search for the entity in", entityInput = "The entity you would like to search for")
+@app_commands.rename(directoryInput="directory", entityInput="entity")
+@app_commands.describe(directoryInput="The category to search for the entity in", entityInput="The entity you would like to search for")
 async def searchdir(interaction: discord.Interaction, directoryInput: str, entityInput: Optional[str] = ""):
     
     LOGGER.info(f"EXECUTING: /searchdir {directoryInput} {entityInput}")
@@ -1533,8 +1534,8 @@ async def searchdir(interaction: discord.Interaction, directoryInput: str, entit
 # FUNC TYPE: Command
 ###
 @CLIENT.tree.command(description="Queries the Open5e API to get all the fully and partially matching entities based on the search term")
-@app_commands.rename(entityInput = "entity", directoryInput = "directory")
-@app_commands.describe(entityInput = "The entity you would like to search for", directoryInput = "The category to search for the entity in")
+@app_commands.rename(entityInput="entity", directoryInput="directory")
+@app_commands.describe(entityInput="The entity you would like to search for", directoryInput="The category to search for the entity in")
 async def lst(interaction: discord.Interaction, entityInput: str, directoryInput: Optional[str] = ""):
 
     LOGGER.info(f"EXECUTING: /lst {entityInput} {directoryInput}")
