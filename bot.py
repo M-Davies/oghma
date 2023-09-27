@@ -26,6 +26,16 @@ if platform.system() == "Windows":
     FILE_DELIMITER = "\\"
 CURRENT_DIR = f"{os.path.dirname(os.path.realpath(__file__))}/"
 
+# Set up logging
+LOGGER = logging.getLogger()
+LOGGER.setLevel(logging.INFO)
+LOG_FILE_HANDLER = logging.FileHandler(filename=f"{CURRENT_DIR}{FILE_DELIMITER}logs{FILE_DELIMITER}oghma-{datetime.now().strftime('%d-%m-%Y')}.log", encoding="utf-8", mode="a")
+LOG_FILE_HANDLER.setFormatter(logging.Formatter("%(asctime)s: %(levelname)s: %(name)s: %(message)s"))
+LOGGER.addHandler(LOG_FILE_HANDLER)
+LOG_OUTPUT_HANDLER = logging.StreamHandler(sys.stdout)
+LOG_OUTPUT_HANDLER.setFormatter(logging.Formatter("%(asctime)s: %(levelname)s: %(name)s: %(message)s"))
+LOGGER.addHandler(LOG_OUTPUT_HANDLER)
+
 class OghmaClient(discord.Client):
     SUPPORT_GUILD = discord.Object(id=723473275803533323)
     def __init__(self, *, intents: discord.Intents):
@@ -44,16 +54,6 @@ SEARCH_PARAM_DIRECTORIES = ["spells", "monsters", "magicitems", "weapons"]
 NUMERIC_OPERATORS = ["+", "-", "*", "/"]
 COMMAND_LIST = ["roll", "search", "searchdir", "help", "lst"]
 ROLL_MAX_PARAM_VALUE = 10001
-
-# Set up logging
-LOGGER = logging.getLogger()
-LOGGER.setLevel(logging.INFO)
-LOG_FILE_HANDLER = logging.FileHandler(filename=f"{CURRENT_DIR}{FILE_DELIMITER}logs{FILE_DELIMITER}oghma-{datetime.now().strftime('%d-%m-%Y')}.log", encoding="utf-8", mode="a")
-LOG_FILE_HANDLER.setFormatter(logging.Formatter("%(asctime)s: %(levelname)s: %(name)s: %(message)s"))
-LOGGER.addHandler(LOG_FILE_HANDLER)
-LOG_OUTPUT_HANDLER = logging.StreamHandler(sys.stderr)
-LOG_OUTPUT_HANDLER.setFormatter(logging.Formatter("%(asctime)s: %(levelname)s: %(name)s: %(message)s"))
-LOGGER.addHandler(LOG_OUTPUT_HANDLER)
 
 ###
 # FUNC NAME: on_ready
