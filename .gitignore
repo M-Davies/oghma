@@ -3,3 +3,4 @@
 *.log
 data/*.md
 *.code-workspace
+__pycache__/
