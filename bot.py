@@ -1,3 +1,5 @@
+# pyright: reportOptionalMemberAccess=false, reportGeneralTypeIssues=false
+
 ###
 # Project: oghma
 # Author: M-Davies
@@ -20,7 +22,7 @@ from typing import Optional
 from dotenv import load_dotenv
 load_dotenv()
 
-### CONSTANTS ###
+# CONSTANTS
 FILE_DELIMITER = "/"
 if platform.system() == "Windows":
     FILE_DELIMITER = "\\"
@@ -36,6 +38,7 @@ LOG_OUTPUT_HANDLER = logging.StreamHandler(sys.stdout)
 LOG_OUTPUT_HANDLER.setFormatter(logging.Formatter("%(asctime)s: %(levelname)s: %(name)s: %(message)s"))
 LOGGER.addHandler(LOG_OUTPUT_HANDLER)
 
+
 class OghmaClient(discord.Client):
     SUPPORT_GUILD = discord.Object(id=723473275803533323)
     
@@ -49,6 +52,7 @@ class OghmaClient(discord.Client):
         self.tree.copy_global_to(guild=self.SUPPORT_GUILD)
         await self.tree.sync(guild=self.SUPPORT_GUILD)
 
+
 INTENTS = discord.Intents.default()
 CLIENT = OghmaClient(intents=INTENTS)
 
@@ -57,22 +61,23 @@ NUMERIC_OPERATORS = ["+", "-", "*", "/"]
 COMMAND_LIST = ["roll", "search", "searchdir", "help", "lst"]
 ROLL_MAX_PARAM_VALUE = 10001
 
-###
-# FUNC NAME: on_ready
-# FUNC DESC: Tells you when bot is ready to accept commands. Also cleans up temp files
-# FUNC TYPE: Event
-###
+
 @CLIENT.event
 async def on_ready():
+    """
+    FUNC NAME: on_ready
+    FUNC DESC: Tells you when bot is ready to accept commands. Also cleans up temp files
+    FUNC TYPE: Event
+    """
     LOGGER.info(f"Logged in as {CLIENT.user.name} ({CLIENT.user.id})")
     
-###
-# FUNC NAME: searchResponse
-# FUNC DESC: Searches the API response for the user input. Returns empty list if nothing was found
-# FUNC TYPE: Function
-###
-def searchResponse(responseResults, filteredEntityInput: str):
 
+def searchResponse(responseResults, filteredEntityInput: str):
+    """
+    FUNC NAME: searchResponse
+    FUNC DESC: Searches the API response for the user input. Returns empty list if nothing was found
+    FUNC TYPE: Function
+    """
     # Sets entity name/title to lowercase and removes spaces
     def parse(entityHeader):
         return entityHeader.replace(" ", "").lower()
@@ -99,13 +104,13 @@ def searchResponse(responseResults, filteredEntityInput: str):
 
     return matches
 
-###
-# FUNC NAME: requestScryfall
-# FUNC DESC: Queries the Scryfall API to obtain a thumbnail image.
-# FUNC TYPE: Function
-###
-def requestScryfall(splitSearchTerm: list):
 
+def requestScryfall(splitSearchTerm: list):
+    """
+    FUNC NAME: requestScryfall
+    FUNC DESC: Queries the Scryfall API to obtain a thumbnail image.
+    FUNC TYPE: Function
+    """
     requestStr = f"https://api.scryfall.com/cards/search?q={' '.join(splitSearchTerm)}&include_extras=true&include_multilingual=true&include_variations=true"
     scryfallRequest = requests.get(requestStr)
 
@@ -141,25 +146,26 @@ def requestScryfall(splitSearchTerm: list):
     # Otherwise, no valid image found
     return 404
 
-###
-# FUNC NAME: getFilterType
-# FUNC DESC: Calculates the filter type based on what is supported by open5e and the requested route to search
-# FUNC TYPE: Function
-###
+
 def getRequestType(route: str):
+    """
+    FUNC NAME: getRequestType
+    FUNC DESC: Calculates the request type based on what is supported by open5e and the requested route to search
+    FUNC TYPE: Function
+    """
     # Determine filter type (search can only be used for some directories)
     if route in SEARCH_PARAM_DIRECTORIES:
         return "search"
     else:
         return "text"
 
-###
-# FUNC NAME: requestOpen5e
-# FUNC DESC: Queries the Open5e API and returns an array of results
-# FUNC TYPE: Function
-###
-def requestOpen5e(query: str, filteredEntityInput: str, wideSearch: bool, listResults: bool):
 
+def requestOpen5e(query: str, filteredEntityInput: str, wideSearch: bool, listResults: bool):
+    """
+    FUNC NAME: requestOpen5e
+    FUNC DESC: Queries the Open5e API and returns an array of results
+    FUNC TYPE: Function
+    """
     # API Request
     request = requests.get(query)
 
@@ -294,7 +300,7 @@ def constructResponse(entityInput: str, route: str, matchedObj: dict):
 
     # Monster
     elif "monster" in route:
-        ## 1ST EMBED ##
+        # 1ST EMBED
         monsterLink = f"https://open5e.com/monsters/{matchedObj['slug']}/"
         monsterEmbedBasics = discord.Embed(
             colour=discord.Colour.green(),
@@ -415,7 +421,7 @@ def constructResponse(entityInput: str, route: str, matchedObj: dict):
 
         responses["embeds"].append(monsterEmbedBasics)
 
-        ## 2ND EMBED ##
+        # 2ND EMBED
         monsterEmbedSkills = discord.Embed(
             colour=discord.Colour.green(),
             title=f"{matchedObj['name']} (MONSTER) - SKILLS & PROFICIENCIES",
@@ -449,7 +455,7 @@ def constructResponse(entityInput: str, route: str, matchedObj: dict):
 
         responses["embeds"].append(monsterEmbedSkills)
 
-        ## 3RD EMBED ##
+        # 3RD EMBED
         monsterEmbedActions = discord.Embed(
             colour=discord.Colour.green(),
             title=f"{matchedObj['name']} (MONSTER) - ACTIONS & ABILITIES",
@@ -508,7 +514,7 @@ def constructResponse(entityInput: str, route: str, matchedObj: dict):
 
         responses["embeds"].append(monsterEmbedActions)
 
-        ## 4TH EMBED (only used if it has legendary actions) ##
+        # 4TH EMBED (only used if it has legendary actions)
         if matchedObj["legendary_desc"] != "":
             monsterEmbedLegend = discord.Embed(
                 colour=discord.Colour.green(),
@@ -962,7 +968,7 @@ def constructResponse(entityInput: str, route: str, matchedObj: dict):
 
         LOGGER.info(f"Creating file: {badObjectFilename}")
         with open(f"{CURRENT_DIR}data{FILE_DELIMITER}{badObjectFilename}", "w+") as itemFile:
-            itemFile.write(matchedObj)
+            itemFile.write(matchedObj) # type: ignore
 
         noRouteEmbed = discord.Embed(
             colour=discord.Colour.red(),
@@ -976,20 +982,22 @@ def constructResponse(entityInput: str, route: str, matchedObj: dict):
 
     return responses
 
-###
-# FUNC NAME: generateFileName
-# FUNC DESC: Generates a filename using type of file and random number
-# FUNC TYPE: Function
-###
+
 def generateFileName(fileType: str):
+    """
+    FUNC NAME: generateFileName
+    FUNC DESC: Generates a filename using type of file and random number
+    FUNC TYPE: Function
+    """
     return f"{fileType}-{str(random.randrange(1,1000000))}.md"
 
-###
-# FUNC NAME: codeError
-# FUNC DESC: Sends an embed informing the user that there has been an API request failure
-# FUNC TYPE: Error
-###
+
 def codeError(statusCode: int, query: str):
+    """
+    FUNC NAME: codeError
+    FUNC DESC: Sends an embed informing the user that there has been an API request failure
+    FUNC TYPE: Error
+    """
     codeEmbed = discord.Embed(
         colour=discord.Colour.red(),
         title=f"ERROR - API Request FAILED. Status Code: **{str(statusCode)}**",
@@ -1006,12 +1014,13 @@ def codeError(statusCode: int, query: str):
     LOGGER.error(f"Sending Open5e Root API Request FAILED embed = {codeEmbed.to_dict()}")
     return codeEmbed
 
-###
-# FUNC NAME: argLengthError
-# FUNC DESC: Sends an embed informing the user that their request is too long
-# FUNC TYPE: Error
-###
+
 def argLengthError():
+    """
+    FUNC NAME: argLengthError
+    FUNC DESC: Sends an embed informing the user that their request is too long
+    FUNC TYPE: Error
+    """
     argLengthErrorEmbed = discord.Embed(
         color=discord.Colour.red(),
         title="Invalid argument length",
@@ -1020,12 +1029,13 @@ def argLengthError():
     argLengthErrorEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
     return argLengthErrorEmbed
 
-###
-# FUNC NAME: getOpen5eRoot
-# FUNC DESC: Retrieves the open5e root dir, which contains the directory urls and names
-# FUNC TYPE: Function
-###
+
 def getOpen5eRoot():
+    """
+    FUNC NAME: getOpen5eRoot
+    FUNC DESC: Retrieves the open5e root dir, which contains the directory urls and names
+    FUNC TYPE: Function
+    """
     # Get API Root
     rootRequest = requests.get("https://api.open5e.com?format=json")
 
@@ -1039,13 +1049,14 @@ def getOpen5eRoot():
         LOGGER.error(f"API Request to Open5e root directory FAILED. Code: {rootRequest.status_code}")
         return rootRequest.status_code
 
-###
-# FUNC NAME: /help
-# FUNC DESC: Displays a help message that shows the bot is live
-# FUNC TYPE: Command
-###
+
 @CLIENT.tree.command(description="Displays a help message that shows usage information")
 async def help(interaction: discord.Interaction):
+    """
+    FUNC NAME: /help
+    FUNC DESC: Displays a help message that shows the bot is live
+    FUNC TYPE: Command
+    """
     helpEmbed = discord.Embed(
         title="Oghma",
         url="https://top.gg/bot/658336624647733258",
@@ -1066,14 +1077,15 @@ async def help(interaction: discord.Interaction):
     helpEmbed.set_footer(text="Feedback? Hate? Make it known to us! (see links above)")
     return await interaction.response.send_message(embed=helpEmbed)
 
-###
-# FUNC NAME: /roll
-# FUNC DESC: Runs a dice roller
-# FUNC TYPE: Command
-###
+
 @CLIENT.tree.command(description="Runs a quick & easy dice roller")
 @app_commands.describe(calculation="The calculation to conduct")
 async def roll(interaction: discord.Interaction, calculation: str):
+    """
+    FUNC NAME: /roll
+    FUNC DESC: Runs a dice roller
+    FUNC TYPE: Command
+    """
 
     LOGGER.info(f"Executing: /roll {calculation}")
 
@@ -1297,15 +1309,16 @@ async def roll(interaction: discord.Interaction, calculation: str):
     diceRollEmbed.insert_field_at(index=1, name="TOTAL", value=f"`{runningTotal}`", inline=False)
     return await interaction.response.send_message(embed=diceRollEmbed)
 
-###
-# FUNC NAME: /search [ENTITY]
-# FUNC DESC: Queries the Open5e search API, basically searches the whole thing for the ENTITY.
-# FUNC TYPE: Command
-###
+
 @CLIENT.tree.command(description="Queries the Open5e API to get the requested entity")
 @app_commands.rename(entityInput="entity")
 @app_commands.describe(entityInput="The entity you would like to search for")
 async def search(interaction: discord.Interaction, entityInput: Optional[str] = ""):
+    """
+    FUNC NAME: /search [ENTITY]
+    FUNC DESC: Queries the Open5e search API, basically searches the whole thing for the ENTITY.
+    FUNC TYPE: Command
+    """
 
     LOGGER.info(f"Executing: /search {entityInput}")
 
@@ -1392,15 +1405,16 @@ async def search(interaction: discord.Interaction, entityInput: Optional[str] = 
             LOGGER.info(f"Sending files - {responses['files']}")
             return await interaction.followup.send(files=responses["files"])
 
-###
-# FUNC NAME: /searchdir [DIRECTORY] [ENTITY]
-# FUNC DESC: Queries the Open5e DIRECTORY API.
-# FUNC TYPE: Command
-###
+
 @CLIENT.tree.command(description="Queries the Open5e API to get an entity's information from a specified directory.")
 @app_commands.rename(directoryInput="directory", entityInput="entity")
 @app_commands.describe(directoryInput="The category to search for the entity in", entityInput="The entity you would like to search for")
 async def searchdir(interaction: discord.Interaction, directoryInput: str, entityInput: Optional[str] = ""):
+    """
+    FUNC NAME: /searchdir [DIRECTORY] [ENTITY]
+    FUNC DESC: Queries the Open5e DIRECTORY API.
+    FUNC TYPE: Command
+    """
     
     LOGGER.info(f"EXECUTING: /searchdir {directoryInput} {entityInput}")
 
@@ -1529,15 +1543,16 @@ async def searchdir(interaction: discord.Interaction, directoryInput: str, entit
         if len(responses["files"]) > 0:
             return await interaction.followup.send(files=responses["files"])
 
-###
-# FUNC NAME: /lst [DIRECTORY] [ENTITY]
-# FUNC DESC: Queries the Open5e API to get all the fully and partially matching entities information in a list embed format.
-# FUNC TYPE: Command
-###
+
 @CLIENT.tree.command(description="Queries the Open5e API to get all the fully and partially matching entities based on the search term")
 @app_commands.rename(entityInput="entity", directoryInput="directory")
 @app_commands.describe(entityInput="The entity you would like to search for", directoryInput="The category to search for the entity in")
 async def lst(interaction: discord.Interaction, entityInput: str, directoryInput: Optional[str] = ""):
+    """
+    FUNC NAME: /lst [DIRECTORY] [ENTITY]
+    FUNC DESC: Queries the Open5e API to get all the fully and partially matching entities information in a list embed format.
+    FUNC TYPE: Command
+    """
 
     LOGGER.info(f"EXECUTING: /lst {entityInput} {directoryInput}")
 
