@@ -27,6 +27,9 @@ load_dotenv()
 
 # CONSTANTS
 FILE_DELIMITER = getFileDelimiter()
+NUMERIC_OPERATORS = ["+", "-", "*", "/"]
+COMMAND_LIST = ["roll", "search", "searchdir", "help", "lst"]
+ROLL_MAX_PARAM_VALUE = 10001
 
 # Set up logging
 LOGGER = logging.getLogger()
@@ -40,25 +43,26 @@ LOGGER.addHandler(LOG_OUTPUT_HANDLER)
 
 
 class OghmaClient(discord.Client):
-    SUPPORT_GUILD = discord.Object(id=723473275803533323)
-    
+    """
+    Sets up the root client that communicates with Discord
+    """
     def __init__(self, *, intents: discord.Intents):
         super().__init__(intents=intents)
         self.tree = app_commands.CommandTree(self)
 
     async def setup_hook(self):
-        # This copies the global commands over to your guild.
-        LOGGER.info("Copying guild tree commands to support guild server...")
-        self.tree.copy_global_to(guild=self.SUPPORT_GUILD)
-        await self.tree.sync(guild=self.SUPPORT_GUILD)
+        LOGGER.info("Setting up...")
+        await self.tree.fetch_commands()
+        if os.environ['ENVIRONMENT'] is not None and os.environ['ENVIRONMENT'] != "PRODUCTION":
+            LOGGER.info(f"Non-production environment ({os.environ['ENVIRONMENT']}) detected. Syncing with testing guild...")
+            supportGuild = discord.Object(id=723473275803533323)
+            self.tree.clear_commands(guild=supportGuild)
+            self.tree.copy_global_to(guild=supportGuild)
+        await self.tree.sync()
+        LOGGER.info("Setup Finished.")
 
 
-INTENTS = discord.Intents.default()
-CLIENT = OghmaClient(intents=INTENTS)
-
-NUMERIC_OPERATORS = ["+", "-", "*", "/"]
-COMMAND_LIST = ["roll", "search", "searchdir", "help", "lst"]
-ROLL_MAX_PARAM_VALUE = 10001
+CLIENT = OghmaClient(intents=discord.Intents.default())
 
 
 @CLIENT.event
