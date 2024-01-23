@@ -1,18 +1,11 @@
 FROM ubuntu
 
 ENV DEBIAN_FRONTEND noninteractive
+ENV PYENV_ROOT /pyenv
+ENV PATH $PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
 
-WORKDIR /app
-RUN mkdir logs/
-RUN mkdir data/
-
-COPY requirements.txt .
-COPY bot.py .
-COPY api.py .
-COPY errors.py .
-COPY utils.py .
-COPY cleanup.py data/.
-COPY .env .
+ADD . /bot
+WORKDIR /bot
 
 # Update system
 RUN apt-get update && apt-get upgrade -y
@@ -20,18 +13,15 @@ RUN apt-get install software-properties-common build-essential libssl-dev zlib1g
 
 # Setup pyenv
 RUN git clone https://github.com/pyenv/pyenv.git /pyenv
-ENV PYENV_ROOT /pyenv
-ENV PATH $PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
 RUN pyenv install 3.11.5
 RUN pyenv global 3.11.5
 RUN pyenv rehash
 RUN python --version
 
 # Init cleanup job
-RUN crontab -l | { cat; echo "0 3 * * * python /app/data/cleanup.py"; } | crontab -
+RUN crontab -l | { cat; echo "0 3 * * * python /bot/data/cleanup.py"; } | crontab -
 
 # Run bot
 RUN python -m pip install -r requirements.txt
 
 CMD ["python", "bot.py"]
-
