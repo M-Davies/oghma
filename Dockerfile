@@ -8,6 +8,9 @@ RUN mkdir data/
 
 COPY requirements.txt .
 COPY bot.py .
+COPY api.py .
+COPY errors.py .
+COPY utils.py .
 COPY cleanup.py data/.
 COPY .env .
 
