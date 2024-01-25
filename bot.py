@@ -107,8 +107,8 @@ async def roll(interaction: discord.Interaction, calculation: str):
     FUNC DESC: Runs a dice roller
     FUNC TYPE: Command
     """
-
     LOGGER.info(f"Executing: /roll {calculation}")
+    await interaction.response.defer(thinking=True)
 
     # Verify arg length isn't over limits
     if len(calculation) >= 201:
@@ -150,7 +150,6 @@ async def roll(interaction: discord.Interaction, calculation: str):
     stepCount = 1
 
     # Iterate over arguments array
-    await interaction.response.defer(thinking=True)
     for argument in calculationList:
 
         # Import cumulativeTotal from previous argument for the current argument
@@ -307,8 +306,8 @@ async def search(interaction: discord.Interaction, entityInput: Optional[str] = 
     FUNC DESC: Queries the Open5e search API, basically searches the whole thing for the ENTITY.
     FUNC TYPE: Command
     """
-
     LOGGER.info(f"Executing: /search {entityInput}")
+    await interaction.response.defer(thinking=True)
 
     # Verify arg length isn't over limits
     if len(entityInput) >= 201:
@@ -316,7 +315,6 @@ async def search(interaction: discord.Interaction, entityInput: Optional[str] = 
         return await interaction.response.send_message(embed=argLengthError())
 
     # Send directory contents if no search term given
-    await interaction.response.defer(thinking=True)
     if len(entityInput) <= 0:
 
         # Get objects from directory, store in file
@@ -403,11 +401,10 @@ async def searchdir(interaction: discord.Interaction, directoryInput: str, entit
     FUNC DESC: Queries the Open5e DIRECTORY API.
     FUNC TYPE: Command
     """
-    
     LOGGER.info(f"EXECUTING: /searchdir {directoryInput} {entityInput}")
+    await interaction.response.defer(thinking=True)
 
     # Get api root directories
-    await interaction.response.defer(thinking=True)
     directories = getOpen5eRoot()
     if isinstance(directories, int):
         return await interaction.followup.send(embed=codeError(directories, "https://api.open5e.com?format=json"))
@@ -541,9 +538,9 @@ async def lst(interaction: discord.Interaction, entityInput: str, directoryInput
     FUNC DESC: Queries the Open5e API to get all the fully and partially matching entities information in a list embed format.
     FUNC TYPE: Command
     """
-
     LOGGER.info(f"EXECUTING: /lst {entityInput} {directoryInput}")
-
+    await interaction.response.defer(thinking=True)
+    
     # Verify arg length isn't over limits
     if len(entityInput) >= 201:
         return await interaction.response.send_message(embed=argLengthError())
@@ -555,7 +552,6 @@ async def lst(interaction: discord.Interaction, entityInput: str, directoryInput
     filteredDirectoryInput = directoryInput.lower()
 
     # Get api root directories
-    await interaction.response.defer(thinking=True)
     directories = getOpen5eRoot()
     if isinstance(directories, int):
         LOGGER.error(f"Open5e Root API Request FAILED: {directories}")
