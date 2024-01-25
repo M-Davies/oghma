@@ -80,6 +80,7 @@ def requestScryfall(splitSearchTerm: list):
     return 404
 
 
+
 def requestOpen5e(query: str, filteredEntityInput: str, wideSearch: bool, listResults: bool):
     """
     FUNC NAME: requestOpen5e

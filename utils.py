@@ -9,6 +9,9 @@ LOGGER = logging.getLogger(__name__)
 
 
 def getFileDelimiter():
+    """
+    Returns the file deliminter for the current OS
+    """
     if platform.system() == "Windows":
         return "\\"
     else:
