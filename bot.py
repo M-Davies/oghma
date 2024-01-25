@@ -6,8 +6,9 @@
 
 # pyright: reportOptionalMemberAccess=false, reportGeneralTypeIssues=false
 
-from utils import generateFileName, getRequestType, getFileDelimiter, constructResponse
-from errors import codeError, argLengthError
+import config
+from utils import generateFileName, getRequestType, constructResponse
+from errors import codeError, argLengthError, invalidArgSupplied, invalidSizeSupplied, unrecognisedNumericOperator
 from api import requestScryfall, requestOpen5e, getOpen5eRoot
 
 import sys
@@ -25,16 +26,10 @@ from typing import Optional
 from dotenv import load_dotenv
 load_dotenv()
 
-# CONSTANTS
-FILE_DELIMITER = getFileDelimiter()
-NUMERIC_OPERATORS = ["+", "-", "*", "/"]
-COMMAND_LIST = ["roll", "search", "searchdir", "help", "lst"]
-ROLL_MAX_PARAM_VALUE = 10001
-
 # Set up logging
 LOGGER = logging.getLogger()
 LOGGER.setLevel(logging.INFO)
-LOG_FILE_HANDLER = logging.FileHandler(filename=f"{os.getcwd()}{FILE_DELIMITER}logs{FILE_DELIMITER}oghma-{datetime.now().strftime('%d-%m-%Y')}.log", encoding="utf-8", mode="a")
+LOG_FILE_HANDLER = logging.FileHandler(filename=f"{os.getcwd()}{config.FILE_DELIMITER}logs{config.FILE_DELIMITER}oghma-{datetime.now().strftime('%d-%m-%Y')}.log", encoding="utf-8", mode="a")
 LOG_FILE_HANDLER.setFormatter(logging.Formatter("%(asctime)s: %(levelname)s: %(name)s: %(message)s"))
 LOGGER.addHandler(LOG_FILE_HANDLER)
 LOG_OUTPUT_HANDLER = logging.StreamHandler(sys.stdout)
@@ -82,6 +77,7 @@ async def help(interaction: discord.Interaction):
     FUNC DESC: Displays a help message that shows the bot is live
     FUNC TYPE: Command
     """
+    await interaction.response.defer(thinking=True)
     helpEmbed = discord.Embed(
         title="Oghma",
         url="https://top.gg/bot/658336624647733258",
@@ -100,7 +96,7 @@ async def help(interaction: discord.Interaction):
     helpEmbed.add_field(name="GitHub", value="https://github.com/M-Davies/oghma", inline=True)
     helpEmbed.add_field(name="Discord", value="https://discord.gg/8YZ2NZ5", inline=True)
     helpEmbed.set_footer(text="Feedback? Hate? Make it known to us! (see links above)")
-    return await interaction.response.send_message(embed=helpEmbed)
+    return await interaction.followup.send(embed=helpEmbed)
 
 
 @CLIENT.tree.command(description="Runs a quick & easy dice roller")
@@ -113,39 +109,6 @@ async def roll(interaction: discord.Interaction, calculation: str):
     """
 
     LOGGER.info(f"Executing: /roll {calculation}")
-
-    # Return invalid args embed (to be called later)
-    def invalidArgSupplied(culprit):
-        invalidArgsEmbed = discord.Embed(
-            color=discord.Colour.red(),
-            title=f"Invalid argument (`{culprit}`) supplied to /roll",
-            description="This is likely due to the value being too low or high.\n\n**USAGE**\n`/roll [ROLLS]d[SIDES]`\n*Example:* `/roll 3d20 + 3`"
-        )
-        invalidArgsEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-        LOGGER.info(f"Invalid argument supplied to /roll = {culprit}")
-        return invalidArgsEmbed
-
-    # Return invalid size of args supplied embed (to be called later)
-    def invalidSizeSupplied(culprit):
-        invalidSizeEmbed = discord.Embed(
-            color=discord.Colour.red(),
-            title=f"Invalid size of argument (`{culprit}`) supplied to /roll",
-            description=f"ROLLS and SIDES and STATIC NUMBERS supplied to `/roll` must be numbers of a reasonable value (CURRENT LIMIT = {ROLL_MAX_PARAM_VALUE}).\n\n**USAGE**\n`?roll [ROLLS]d[SIDES]`\n*Example:* `?roll 3d20 + 3`"
-        )
-        invalidSizeEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-        LOGGER.info(f"Invalid size of argument supplied to /roll = {culprit}")
-        return invalidSizeEmbed
-
-    # Return invalid numeric operator embed (to be called later)
-    def unrecognisedNumericOperator(numericOperator):
-        invalidOperatorEmbed = discord.Embed(
-            color=discord.Colour.red(),
-            title=f"`{numericOperator}` IS NOT SUPPORTED",
-            description=f"**SUPPORTED OPERATORS:**\n{NUMERIC_OPERATORS}"
-        )
-        invalidOperatorEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
-        LOGGER.info(f"Unrecognised numeric operator supplied to /roll = {numericOperator}")
-        return invalidOperatorEmbed
 
     # Verify arg length isn't over limits
     if len(calculation) >= 201:
@@ -198,12 +161,12 @@ async def roll(interaction: discord.Interaction, calculation: str):
         }
 
         # If arg is a operator, isn't the first character and is a single char
-        if argument in NUMERIC_OPERATORS:
+        if argument in config.NUMERIC_OPERATORS:
             if calculationList.index(argument) != 0:
                 if len(argument) == 1:
                     currentOperator = argument
                 else:
-                    return await interaction.response.send_message(embed=unrecognisedNumericOperator(argument))
+                    return await interaction.followup.send(embed=unrecognisedNumericOperator(argument))
             else:
                 operatorAtFront = discord.Embed(
                     color=discord.Colour.red(),
@@ -211,7 +174,7 @@ async def roll(interaction: discord.Interaction, calculation: str):
                 )
                 operatorAtFront.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
 
-                return await interaction.response.send_message(embed=operatorAtFront)
+                return await interaction.followup.send(embed=operatorAtFront)
 
         # If the arg is a dice or a number
         else:
@@ -225,11 +188,11 @@ async def roll(interaction: discord.Interaction, calculation: str):
 
             if isinstance(numCheck, float):
                 # Ensure number isn't too big
-                if numCheck <= ROLL_MAX_PARAM_VALUE:
+                if numCheck <= config.ROLL_MAX_PARAM_VALUE:
                     # Add to dict in same manner as a dice roll total
                     diceRollResults[argument]["sectionTotal"] = numCheck
                 else:
-                    return await interaction.response.send_message(embed=invalidSizeSupplied(numCheck))
+                    return await interaction.followup.send(embed=invalidSizeSupplied(numCheck))
 
             # If it's a dice...
             else:
@@ -249,24 +212,24 @@ async def roll(interaction: discord.Interaction, calculation: str):
                         try:
                             numberOfRolls = int(regexReturn.group("rolls"))
 
-                            if numberOfRolls >= ROLL_MAX_PARAM_VALUE:
-                                return await interaction.response.send_message(embed=invalidSizeSupplied(numberOfRolls))
+                            if numberOfRolls >= config.ROLL_MAX_PARAM_VALUE:
+                                return await interaction.followup.send(embed=invalidSizeSupplied(numberOfRolls))
 
                         except ValueError:
-                            return await interaction.response.send_message(embed=invalidArgSupplied(regexReturn.group("rolls")))
+                            return await interaction.followup.send(embed=invalidArgSupplied(regexReturn.group("rolls")))
 
                     # Checks the amount of sides supplied is a number and is valid
                     try:
                         numberOfSides = int(regexReturn.group("sides"))
 
-                        if numberOfSides < 2 or numberOfSides >= ROLL_MAX_PARAM_VALUE:
-                            return await interaction.response.send_message(embed=invalidSizeSupplied(numberOfSides))
+                        if numberOfSides < 2 or numberOfSides >= config.ROLL_MAX_PARAM_VALUE:
+                            return await interaction.followup.send(embed=invalidSizeSupplied(numberOfSides))
 
                     except ValueError:
-                        return await interaction.response.send_message(embed=invalidArgSupplied(regexReturn.group("sides")))
+                        return await interaction.followup.send(embed=invalidArgSupplied(regexReturn.group("sides")))
 
                 else:
-                    return await interaction.response.send_message(embed=invalidArgSupplied("NO DICE SIDES DETECTED! TRY CHECKING YOUR SYNTAX AND /roll USAGE"))
+                    return await interaction.followup.send(embed=invalidArgSupplied("NO DICE SIDES DETECTED! TRY CHECKING YOUR SYNTAX AND /roll USAGE"))
 
                 # Calculate dice rolls and append to the dict
                 for currentRoll in range(1, numberOfRolls + 1):
@@ -314,7 +277,7 @@ async def roll(interaction: discord.Interaction, calculation: str):
                 elif currentOperator == "/":
                     runningTotal = previousTotal / runningTotal
                 else:
-                    return await interaction.response.send_message(embed=unrecognisedNumericOperator(currentOperator))
+                    return await interaction.followup.send(embed=unrecognisedNumericOperator(currentOperator))
 
                 # Append to embed
                 diceRollEmbed.add_field(
@@ -332,7 +295,7 @@ async def roll(interaction: discord.Interaction, calculation: str):
 
     # Append final total and send embed
     diceRollEmbed.insert_field_at(index=1, name="TOTAL", value=f"`{runningTotal}`", inline=False)
-    return await interaction.response.send_message(embed=diceRollEmbed)
+    return await interaction.followup.send(embed=diceRollEmbed)
 
 
 @CLIENT.tree.command(description="Queries the Open5e API to get the requested entity")
@@ -369,7 +332,7 @@ async def search(interaction: discord.Interaction, entityInput: Optional[str] = 
         entityFileName = generateFileName("entsearch")
 
         LOGGER.info(f"Creating file: {entityFileName}")
-        with open(f"{os.getcwd()}data{FILE_DELIMITER}{entityFileName}", "w+") as entityFile:
+        with open(f"{os.getcwd()}data{config.FILE_DELIMITER}{entityFileName}", "w+") as entityFile:
             for apiEntity in directoryRequest.json()["results"]:
                 if "title" in apiEntity.keys():
                     entityFile.write(f"{apiEntity['title']}\n")
@@ -517,7 +480,7 @@ async def searchdir(interaction: discord.Interaction, directoryInput: str, entit
         entityDirFileName = generateFileName("entsearchdir")
 
         LOGGER.info(f"Creating file: {entityDirFileName}")
-        with open(f"{os.getcwd()}data{FILE_DELIMITER}{entityDirFileName}", "w+") as entityFile:
+        with open(f"{os.getcwd()}data{config.FILE_DELIMITER}{entityDirFileName}", "w+") as entityFile:
             entityFile.write("\n".join(entityNames))
 
         # Send embed notifying start of the spam stream
@@ -683,7 +646,7 @@ async def lst(interaction: discord.Interaction, entityInput: str, directoryInput
             # Create file and store matches in there
             matchesFileName = generateFileName("matches")
             LOGGER.info(f"Creating file: {matchesFileName}")
-            with open(f"{os.getcwd()}data{FILE_DELIMITER}{matchesFileName}", "w+") as matchesFile:
+            with open(f"{os.getcwd()}data{config.FILE_DELIMITER}{matchesFileName}", "w+") as matchesFile:
                 matchesFile.write(formattedMatches)
 
             matchesEmbed.add_field(name=f"See `{matchesFileName}` for the matched entities", value="Due to discord character limits regarding embeds, the results have to be sent in a file", inline=False)

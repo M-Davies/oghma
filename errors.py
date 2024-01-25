@@ -1,5 +1,6 @@
 import discord
 import logging
+import config
 
 LOGGER = logging.getLogger(__name__)
 
@@ -40,3 +41,45 @@ def argLengthError():
     )
     argLengthErrorEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
     return argLengthErrorEmbed
+
+
+def invalidArgSupplied(culprit):
+    """
+    Returns an invalid args embed
+    """
+    invalidArgsEmbed = discord.Embed(
+        color=discord.Colour.red(),
+        title=f"Invalid argument (`{culprit}`) supplied to /roll",
+        description="This is likely due to the value being too low or high.\n\n**USAGE**\n`/roll [ROLLS]d[SIDES]`\n*Example:* `/roll 3d20 + 3`"
+    )
+    invalidArgsEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
+    LOGGER.info(f"Invalid argument supplied to /roll = {culprit}")
+    return invalidArgsEmbed
+
+
+def invalidSizeSupplied(culprit):
+    """
+    Returns an invalid size of args supplied embed
+    """
+    invalidSizeEmbed = discord.Embed(
+        color=discord.Colour.red(),
+        title=f"Invalid size of argument (`{culprit}`) supplied to /roll",
+        description=f"ROLLS and SIDES and STATIC NUMBERS supplied to `/roll` must be numbers of a reasonable value (CURRENT LIMIT = {config.ROLL_MAX_PARAM_VALUE}).\n\n**USAGE**\n`?roll [ROLLS]d[SIDES]`\n*Example:* `?roll 3d20 + 3`"
+    )
+    invalidSizeEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
+    LOGGER.info(f"Invalid size of argument supplied to /roll = {culprit}")
+    return invalidSizeEmbed
+
+
+def unrecognisedNumericOperator(numericOperator):
+    """
+    Return invalid numeric operator embed
+    """
+    invalidOperatorEmbed = discord.Embed(
+        color=discord.Colour.red(),
+        title=f"`{numericOperator}` IS NOT SUPPORTED",
+        description=f"**SUPPORTED OPERATORS:**\n{config.NUMERIC_OPERATORS}"
+    )
+    invalidOperatorEmbed.set_thumbnail(url="https://i.imgur.com/j3OoT8F.png")
+    LOGGER.info(f"Unrecognised numeric operator supplied to /roll = {numericOperator}")
+    return invalidOperatorEmbed
