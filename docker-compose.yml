@@ -3,7 +3,8 @@ version: '3'
 services:
   oghma:
     container_name: oghma
-    build: .
+    build:
+      context: .
     image: oghma:latest
     restart: unless-stopped
     environment:
