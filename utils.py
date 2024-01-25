@@ -290,7 +290,7 @@ def constructResponse(entityInput: str, route: str, matchedObj: dict):
             )
 
         # Reactions
-        if matchedObj["reactions"] != "":
+        if matchedObj["reactions"]:
             for reaction in matchedObj["reactions"]:
                 monsterEmbedActions.add_field(
                     name=f"{reaction['name']} (REACTION)",
