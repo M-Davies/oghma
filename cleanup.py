@@ -22,12 +22,13 @@ LOG_OUTPUT_HANDLER = logging.StreamHandler(sys.stdout)
 LOG_OUTPUT_HANDLER.setFormatter(logging.Formatter("%(asctime)s: %(levelname)s: %(name)s: %(message)s"))
 LOGGER.addHandler(LOG_OUTPUT_HANDLER)
 
-###
-# FUNC NAME: cleanup
-# FUNC DESC: Cleans up all txt files created from commands. Fires on a schedule set by Heroku
-# FUNC TYPE: Function
-###
+
 def cleanup():
+    """
+    FUNC NAME: cleanup
+    FUNC DESC: Cleans up all txt files created from commands. Fires on a schedule set by Heroku
+    FUNC TYPE: Function
+    """
     FOLDER = os.getcwd() + FILE_DELIMITER
     for filename in os.listdir(FOLDER):
         FILE = f"{FOLDER}{FILE_DELIMITER}{filename}"
@@ -41,5 +42,6 @@ def cleanup():
                 LOGGER.info(f"{ FILE } successfully deleted!\n------")
 
     LOGGER.info("SUCCESS: All data files deleted!")
+
 
 cleanup()
